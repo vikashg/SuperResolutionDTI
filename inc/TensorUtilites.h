@@ -35,8 +35,11 @@ public:
 	DiffusionTensorType LogM(DiffusionTensorType D);
 	DiffusionTensorType ExpM(DiffusionTensorType D);
 	TensorImageType::Pointer ReplaceNaNsReverseEigenValue(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage);
+	TensorImageType::Pointer ReplaceNaNsInfsExpTensor(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage);        
 	MatrixType ConvertDT2Mat(DiffusionTensorType D);
 	RealType ComputeTensorNorm(DiffusionTensorType D);
+
+	TensorImageType::Pointer ReplaceNaNsInfs(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage);
 
 	DiffusionTensorType ConvertMat2DT(MatrixType D_mat);
 	TensorImageType::Pointer LogTensorImageFilter(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage);
@@ -44,7 +47,9 @@ public:
 	DiffusionTensorType MatrixExpDirDerivative(DiffusionTensorType D, VectorType G, ScalarImageType::IndexType Idx);
 };
 
+//	TensorImageType::Pointer DifferenceTensorImage(TensorImageType::Pointer TensorImage1, TensorImageType::Pointer tensorImage2);
 
-
+//	ScalarImageType::Pointer ComputeFA(TensorImageType::Pointer tensorImage);
+	
 
 #endif /* INC_TENSORUTILITES_H_ */

@@ -1,6 +1,9 @@
 ADD_EXECUTABLE(testMapping TestMapping.cpp)
 TARGET_LINK_LIBRARIES(testMapping ${ITK_LIBRARIES} SuperResolution) 
 
+ADD_EXECUTABLE(IsolateProbTensors IsolateProbTensors.cpp)
+TARGET_LINK_LIBRARIES(IsolateProbTensors ${ITK_LIBRARIES} SuperResolution) 
+
 ADD_EXECUTABLE(testSobol TestSobol.cpp)
 TARGET_LINK_LIBRARIES(testSobol ${ITK_LIBRARIES} SuperResolution) 
 
@@ -10,17 +13,26 @@ TARGET_LINK_LIBRARIES(extractValues ${ITK_LIBRARIES} SuperResolution)
 ADD_EXECUTABLE(imageDisplayProperties ImageDisplayProperties.cpp)
 TARGET_LINK_LIBRARIES(imageDisplayProperties ${ITK_LIBRARIES} SuperResolution) 
 
+ADD_EXECUTABLE(EigenValues EigenValues.cpp)
+TARGET_LINK_LIBRARIES(EigenValues ${ITK_LIBRARIES} SuperResolution) 
+
 ADD_EXECUTABLE(removeSlices RemoveSlices.cpp)
 TARGET_LINK_LIBRARIES(removeSlices ${ITK_LIBRARIES} SuperResolution) 
 
 #ADD_EXECUTABLE(propagateGradients PropagateGradients.cpp)
 #TARGET_LINK_LIBRARIES(propagateGradients ${ITK_LIBRARIES} SuperResolution) 
 
+ADD_EXECUTABLE(ConvertLogExpTensorImageFilter ConvertLogExpTensorImageFilter.cpp)
+TARGET_LINK_LIBRARIES(ConvertLogExpTensorImageFilter ${ITK_LIBRARIES} SuperResolution)
+
 ADD_EXECUTABLE(tensorValues TensorValues.cpp)
 TARGET_LINK_LIBRARIES(tensorValues ${ITK_LIBRARIES} SuperResolution) 
 
 ADD_EXECUTABLE(extractScalarImage ExtractScalarImageRegion.cpp)
 TARGET_LINK_LIBRARIES(extractScalarImage ${ITK_LIBRARIES} SuperResolution) 
+
+ADD_EXECUTABLE(MaskInv MaskInv.cpp)
+TARGET_LINK_LIBRARIES(MaskInv ${ITK_LIBRARIES} SuperResolution) 
 
 ADD_EXECUTABLE(extractTensorImage ExtractTensorImageRegion.cpp)
 TARGET_LINK_LIBRARIES(extractTensorImage ${ITK_LIBRARIES} SuperResolution) 
@@ -54,6 +66,9 @@ TARGET_LINK_LIBRARIES(TransformPoints ${ITK_LIBRARIES} SuperResolution)
 
 ADD_EXECUTABLE(TestMappingDispField TestMappingDispField.cpp)
 TARGET_LINK_LIBRARIES(TestMappingDispField ${ITK_LIBRARIES} SuperResolution)
+
+ADD_EXECUTABLE(ComputeScalarValues ComputeScalarValues.cpp)
+TARGET_LINK_LIBRARIES(ComputeScalarValues ${ITK_LIBRARIES} SuperResolution)
 
 ADD_EXECUTABLE(TransformGradientTable_1 TransformGradientTable_1.cpp)
 TARGET_LINK_LIBRARIES(TransformGradientTable_1 ${ITK_LIBRARIES} SuperResolution)

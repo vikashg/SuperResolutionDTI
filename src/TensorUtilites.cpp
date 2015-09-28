@@ -6,7 +6,15 @@
  */
 
 #include "TensorUtilites.h"
+/*
+TensorUtilities::ScalarImageType::Pointer TensorUtilities::ComputeFA(TensorImageType::Pointer tensorImage)
+{
+	ScalarImageType::Pointer FAImage = ScalarImageType::New();
 
+	return FAImage;
+	
+}
+*/
 TensorUtilities::TensorImageType::Pointer TensorUtilities::LogTensorImageFilter(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage)
 {
 	TensorImageType::Pointer LogTensorImage = TensorImageType::New();
@@ -19,7 +27,7 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::LogTensorImageFilter(
 
 	TensorUtilities utilsTensor;
 
-	std::cout << "LogTensImageFilter " << std::endl;
+	//std::cout << "LogTensImageFilter " << std::endl;
 
 	for (itMask.GoToBegin(), itDT.GoToBegin(), itLDT.GoToBegin(); !itMask.IsAtEnd(), !itDT.IsAtEnd(), !itLDT.IsAtEnd();
 			++itMask, ++itDT, ++itLDT)
@@ -48,12 +56,105 @@ TensorUtilities::RealType TensorUtilities::ComputeTensorNorm(DiffusionTensorType
 	return sqrt(2*Norm);
 }
 
-TensorUtilities::TensorImageType::Pointer TensorUtilities::ExpTensorImageFilter(TensorImageType::Pointer tensorImage,
-																				ScalarImageType::Pointer maskImage)
+TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsInfsExpTensor(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage)
+{
+	TensorImageType::Pointer outputTensorImage = TensorImageType::New();
+	CopyImage cpImage;
+	cpImage.CopyTensorImage(tensorImage, outputTensorImage);
+
+	 vnl_matrix<RealType> ZeroD_mat; ZeroD_mat.set_size(3,3);
+         ZeroD_mat.set_identity();
+         DiffusionTensorType ZeroD;
+	
+		
+	ZeroD = ConvertMat2DT(ZeroD_mat);
+	
+	TensorIterator itTens(tensorImage, tensorImage->GetLargestPossibleRegion());
+	TensorIterator itOut(outputTensorImage, outputTensorImage->GetLargestPossibleRegion());
+	ScalarIterator itMask(maskImage, maskImage->GetLargestPossibleRegion());
+
+	for (itTens.GoToBegin(), itOut.GoToBegin(), itMask.GoToBegin(); 
+	    !itTens.IsAtEnd(), !itOut.IsAtEnd(), !itMask.IsAtEnd();
+	    ++itTens, ++itOut, ++itMask)
+	{
+		if (itMask.Get() !=0)
+		{
+		  float Trace;
+		  Trace = itTens.Get().GetTrace();
+		
+			if( (isnan(Trace) == 1) || (isinf(Trace) ==1))
+			{
+			 itOut.Set(ZeroD);
+			std::cout << itOut.GetIndex() << " " << itOut.Get() << std::endl;
+			}
+			else
+			{
+				itOut.Set(itTens.Get());
+			}
+		}
+		else
+		{
+		itOut.Set(ZeroD);
+		}
+	}
+
+	return outputTensorImage;
+
+}
+
+TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsInfs(TensorImageType::Pointer log_tensorImage, ScalarImageType::Pointer maskImage)
+{
+	TensorImageType::Pointer outputTensorImage = TensorImageType::New();
+	CopyImage cpImage;
+	cpImage.CopyTensorImage(log_tensorImage, outputTensorImage);
+
+	 vnl_matrix<RealType> ZeroD_mat; ZeroD_mat.set_size(3,3);
+         ZeroD_mat.fill(0.0);
+         DiffusionTensorType ZeroD;
+		
+	ZeroD = ConvertMat2DT(ZeroD_mat);
+	
+	TensorIterator itLog(log_tensorImage, log_tensorImage->GetLargestPossibleRegion());
+	TensorIterator itOut(outputTensorImage, outputTensorImage->GetLargestPossibleRegion());
+	ScalarIterator itMask(maskImage, maskImage->GetLargestPossibleRegion());
+
+	for (itLog.GoToBegin(), itOut.GoToBegin(), itMask.GoToBegin(); 
+	    !itLog.IsAtEnd(), !itOut.IsAtEnd(), !itMask.IsAtEnd();
+	    ++itLog, ++itOut, ++itMask)
+	{
+		if (itMask.Get() !=0)
+		{
+		  float Trace;
+		  Trace = itLog.Get().GetTrace();
+		
+			if( (isnan(Trace) == 1) || (isinf(Trace) ==1))
+			{
+			 itOut.Set(ZeroD);
+			std::cout << itOut.GetIndex() << " " << itOut.Get() << std::endl;
+			}
+			else
+			{
+				itOut.Set(itLog.Get());
+			}
+		}
+		else
+		{
+		itOut.Set(ZeroD);
+		}
+	}
+
+	return outputTensorImage;
+}
+
+
+TensorUtilities::TensorImageType::Pointer TensorUtilities::ExpTensorImageFilter(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage)
 {
 	TensorImageType::Pointer ExpTensorImage = TensorImageType::New();
 	CopyImage cpImage;
 	cpImage.CopyTensorImage(tensorImage, ExpTensorImage);
+
+	DiffusionTensorType ZeroD;
+	ZeroD.SetIdentity();
 
 	ScalarIterator itMask(maskImage, maskImage->GetLargestPossibleRegion());
 	TensorIterator itDT(tensorImage, tensorImage->GetLargestPossibleRegion());
@@ -64,9 +165,16 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ExpTensorImageFilter(
 	for (itMask.GoToBegin(), itDT.GoToBegin(), itEDT.GoToBegin() ;!itMask.IsAtEnd(), !itEDT.IsAtEnd(), !itDT.IsAtEnd(); ++itMask, ++itDT, ++itEDT)
 	{
 
-					DiffusionTensorType D = ExpM(itDT.Get());
-					itEDT.Set(D);
-
+		if (itMask.Get() != 0)
+		{
+		//std::cout << itMask.GetIndex() << " "  << itDT.Get() <<   std::endl;
+		DiffusionTensorType D = ExpM(itDT.Get());
+		itEDT.Set(D);
+		}
+		else
+		{
+		 itEDT.Set(ZeroD); 
+		}
 	}
 
 	return ExpTensorImage;
@@ -256,7 +364,7 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsReverseEig
 {
 	TensorImageType::Pointer newTensorImage = TensorImageType::New();
 
-		std::cout << "Replace Nans " << std::endl;
+		//std::cout << "Replace Nans " << std::endl;
 
 		vnl_matrix<RealType> ZeroD_mat; ZeroD_mat.set_size(3,3);
 		ZeroD_mat.set_identity();
@@ -269,8 +377,9 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsReverseEig
 		newTensorImage->SetOrigin(tensorImage->GetOrigin());
 		newTensorImage->SetRegions(tensorImage->GetLargestPossibleRegion());
 		newTensorImage->Allocate();
-		newTensorImage->FillBuffer(ZeroD);
+		newTensorImage->FillBuffer(D_identity);
 
+		//std::cout << "D identity " << D_identity << std::endl;
 
 		TensorIterator itTens1(tensorImage, tensorImage->GetLargestPossibleRegion());
 		TensorIterator itTens2(newTensorImage, newTensorImage->GetLargestPossibleRegion());
@@ -300,7 +409,7 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsReverseEig
 						}
 						RealType prod =S[0]*S[1]*S[2];
 
-						if (prod <= 0)
+						if (prod < 0)
 						{
 							for (int i=0; i < 3; i++)
 							{
@@ -317,13 +426,17 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsReverseEig
 							DiffusionTensorType D_new;
 							D_new = ConvertMat2DT(D_temp_mat);
 							itTens2.Set(D_new);
-							std::cout << itMask.GetIndex() <<std::endl;
+							//std::cout << itMask.GetIndex() <<std::endl;
 
+						}
+						else if(prod==0)
+						{
+						  itTens2.Set(D_identity);
 						}
 
 						else
 						{
-							itTens2.Set(itTens1.Get());
+						     itTens2.Set(itTens1.Get());
 						}
 			}
 		}

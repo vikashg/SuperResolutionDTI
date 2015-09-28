@@ -56,6 +56,13 @@ int main(int argc, char* *argv)
 	     std::cout << "Size "   << image->GetLargestPossibleRegion().GetSize() << std::endl;
 	     std::cout << "Directions " << image->GetDirection() << std::endl;
 
+	    ImageType::IndexType tempIndex, tempIndex1;
+	    tempIndex.Fill(0); tempIndex1.Fill(1);
+
+		
+	
+
+
 	     return 0;
 }
 

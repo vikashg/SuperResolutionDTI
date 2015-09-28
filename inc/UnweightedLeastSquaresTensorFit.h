@@ -28,9 +28,9 @@ class UnweightedLeastSquaresTensorEstimation
 	typedef itk::Image<RealType, 3> ScalarImageType;
 	typedef std::vector<ScalarImageType::Pointer> ImageListType;
 
-    typedef itk::Vector<RealType, 3> VectorType;
-    typedef itk::Image<VectorType, 3> VectorImageType;
-    typedef std::vector<VectorImageType::Pointer> VectorImageListType;
+        typedef itk::Vector<double, 3> VectorType;
+        typedef itk::Image<VectorType, 3> VectorImageType;
+        typedef std::vector<VectorImageType::Pointer> VectorImageListType;
 
 
 	typedef itk::ImageRegionIterator<ScalarImageType> ScalarImageIterator;

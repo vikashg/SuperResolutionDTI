@@ -94,17 +94,6 @@ vnl_vector<ComputeSigma::RealType> ComputeSigma::ComputeAttenuation()
 		}
 		}
 
-//
-
-
-//		DivideByImageFilterType::Pointer divideByImageFilter  = DivideByImageFilterType::New();
-//		divideByImageFilter->SetInput1(m_DWIList[i]);
-//		divideByImageFilter->SetInput2(m_B0Image);
-//		divideByImageFilter->Update();
-//
-//		ScalarImageType::Pointer Obs_Atten = divideByImageFilter->GetOutput();
-//		Obs_Atten->DisconnectPipeline();
-//
 		subImageFilter->SetInput1(m_DWIList[i]);
 		subImageFilter->SetInput2(Atten_im);
 		subImageFilter->Update();
@@ -116,33 +105,8 @@ vnl_vector<ComputeSigma::RealType> ComputeSigma::ComputeAttenuation()
 		statisticImageFilter->Update();
 
 
-//		int num =i;
-//		std::ostringstream num_con;
-//		num_con << num;
-//		std::string result  = num_con.str();
-//
-//		std::string tempName = "Diff_" + result + ".nii.gz";
-//		std::string tempName1 = "Attn_" + result + ".nii.gz";
-//		std::string tempName2 = "ObsAtten_" + result + ".nii.gz";
-//
-//		WriterType::Pointer writer = WriterType::New();
-//		writer->SetFileName(tempName);
-//		writer->SetInput(diffImage);
-//		writer->Update();
-//
-//		WriterType::Pointer writer1 = WriterType::New();
-//		writer1->SetFileName(tempName1);
-//		writer1->SetInput(Atten_im);
-//		writer1->Update();
-//
-//		WriterType::Pointer writer2 = WriterType::New();
-//		writer2->SetFileName(tempName2);
-//		writer2->SetInput(Obs_Atten);
-//		writer2->Update();
-
 		RealType sigma = statisticImageFilter->GetSigma();
 		Sigma.put(i, sigma);
-//		std::cout << sigma << std::endl;
 
 	}
 

@@ -6,8 +6,7 @@
  */
 
 #include <MapFilterLR2HRDispField.h>
-#include <random>
-#include <time.h>
+
 unsigned long int MapFilterLR2HRDisp::ComputeMatrixIndex(ImageType::Pointer image, ImageType::IndexType index)
 {
 	ImageType::SizeType size;
@@ -82,82 +81,72 @@ void MapFilterLR2HRDisp::ComputeMapWithDefField()
 	maskSO->SetImage(m_MaskImage);
 	maskSO->Update();
 
-	ImageType::IndexType testIndexLR, testIndexHR;
+	ImageType::IndexType testIndexLR;
 	testIndexLR[0]=20; testIndexLR[1]=34; testIndexLR[2]=2;
-	testIndexHR[0]=56; testIndexHR[1]=120; testIndexHR[2]=181;
-
-
-//	PointType tempPoint;
-//	m_fixedImage->TransformIndexToPhysicalPoint(testIndexHR, tempPoint);
-	
-	ImageType::Pointer tempImage_Fixed = ImageType::New();
-	CopyImage cpImage1;
-	cpImage1.CopyScalarImage(m_fixedImage, tempImage_Fixed);
-
-
-	//std::cout << tempPoint << std::endl;
-	std::cout << "First Point " << m_Origin_FI << std::endl;
-	std::cout << "LastPoint " << m_Final_FI << std::endl;	
 
 	double r[3];
-	long long int seed = time(NULL);
+	long long int seed =0;
 	long long int seed_in;
 	long long int seed_out;
 	
-	srand (time(NULL));
 
-	
-	ScalarIterator itMask(m_fixedImage, m_fixedImage->GetLargestPossibleRegion());
-	ImageType::SpacingType spacing;
-
-	spacing = m_fixedImage->GetSpacing();
-	
-	for (itMask.GoToBegin(); !itMask.IsAtEnd(); ++itMask)
+	while (num < TOTAL_PTS)
 	{
-		if (itMask.Get() != 0)
+		PointType P_fixed, P_moving;
+	/*	for (int j=0; j < 3; j++)
 		{
-		 PointType P_mid, P_min, P_max;
-		 m_fixedImage->TransformIndexToPhysicalPoint(itMask.GetIndex(), P_mid);
-		 for (int i=0; i < 3; i++)
-		 {
-			P_min[i] = P_mid[i] - spacing[i]/2;
-			P_max[i] = P_mid[i] + spacing[i]/2;
-		 }	
-			
-		//	std::cout << "Mask Index " << std::endl;
-			for (int i=0; i < 10; i++)
-			{
-				PointType P_rand;
-				for (int j=0; j < 3; j++)
-				{
-				double r =  ((double) rand() /(RAND_MAX)) ;
-				double temp_add = r*(P_max[j] - P_min[j]);
-				P_rand[j] = P_min[j] + temp_add;
-				}
-				
-			      ImageType::IndexType Index_Fixed, Index_Moving;
-			      m_fixedImage->TransformPhysicalPointToIndex(P_rand, Index_Fixed);
-		              PointType P_moving;
-			      P_moving = defFieldTransform->TransformPoint(P_rand);
-			     bool flag_M;
-			    flag_M = m_MovingImage->TransformPhysicalPointToIndex(P_moving, Index_Moving);
-			
-			unsigned long int rN, cN;
-			rN = ComputeMatrixIndex(m_fixedImage, Index_Fixed);
-			
-			// std::cout << Index_Fixed << std::endl;
-			if( flag_M == 1)
-			{
-			  cN = ComputeMatrixIndex(m_MovingImage, Index_Moving); 
-			
-			  SpVnl_Row(rN,cN) = SpVnl_Row(rN,cN) +1 ;
-			}		
-			
-			}
+      		 double r =  ((double) rand() /(RAND_MAX)) ;
+    		 double temp_add = r*(m_Final_FI[j] - m_Origin_FI[j]);
+    		 P_fixed[j] = m_Origin_FI[j] + temp_add;
 		}
-	}			
+	*/
+		
+		double r[3];
+		i8_sobol( 3, &seed, r);
 
+		for (int j=0; j< 3; j++)
+		{
+		 double temp_add = r[j]*(m_Final_FI[j] - m_Origin_FI[j]);
+		 P_fixed[j] = m_Origin_FI[j] + temp_add;
+		}
+		
+		if (maskSO->IsInside(P_fixed) == 1)
+		{
+			ImageType::IndexType testIndex;
+			m_fixedImage->TransformPhysicalPointToIndex(P_fixed, testIndex);
+			m_fixedImage->SetPixel(testIndex, 200);
+			P_moving = defFieldTransform->TransformPoint(P_fixed);
+			num++;
+//			std::cout << num << std::endl;
+
+
+
+
+		ImageType::IndexType Index_Fixed, Index_Moving;
+		bool flag_M, flag_F;
+		flag_M = m_MovingImage->TransformPhysicalPointToIndex(P_moving, Index_Moving);
+		flag_F = m_fixedImage->TransformPhysicalPointToIndex(P_fixed, Index_Fixed);
+
+//		std::cout << "Outside " << flag_M << " " << flag_F << std::endl;
+//		std::cout << Index_Moving << " " << Index_Fixed << std::endl;
 	
+	
+		if ((flag_M == 1) && (flag_F ==1))
+		{
+//			m_MovingImage->SetPixel(Index_Moving, 3000);
+			unsigned long int rN, cN;
+
+			rN = ComputeMatrixIndex(m_fixedImage, Index_Fixed);
+			cN = ComputeMatrixIndex(m_MovingImage, Index_Moving);
+			
+//			std::cout << "adding " << std::endl;
+
+			SpVnl_Row(rN, cN) = SpVnl_Row(rN,cN) +1;
+		}
+
+		}
+	}
+
 	SpVnl_Col = SpVnl_Row.transpose();
 	
 	m_SpVnl_Row_normalized.set_size(NumVoxelsFixed, NumVoxelsMoving );
@@ -207,6 +196,19 @@ void MapFilterLR2HRDisp::ComputeMapWithDefField()
 
         m_SpVnl_Col_normalized.set_row(i, rowIndices, rowValues);
     }
+
+
+
+	typedef itk::ImageFileWriter<ImageType> WriterType;
+	WriterType::Pointer writer = WriterType::New();
+	writer->SetFileName("testOutputMoving.nii.gz");
+	writer->SetInput(m_MovingImage);
+	writer->Update();
+
+	WriterType::Pointer writer1 = WriterType::New();
+	writer1->SetFileName("testOutputFixed.nii.gz");
+	writer1->SetInput(m_fixedImage);
+	writer1->Update();
 
 }
 

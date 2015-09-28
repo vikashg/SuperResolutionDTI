@@ -30,7 +30,6 @@ ENDIF(ITK_FOUND)
   set(ANTS_LIBS antsUtilities)
 
 
-
 INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR}/inc )
 ADD_SUBDIRECTORY (${PROJECT_SOURCE_DIR}/src )
 ADD_SUBDIRECTORY (${PROJECT_SOURCE_DIR}/Utilities )
@@ -42,6 +41,9 @@ ADD_SUBDIRECTORY (${PROJECT_SOURCE_DIR}/Utilities )
 
 ADD_EXECUTABLE(stkEstimateTensors STKEstimateTensors.cpp)
 TARGET_LINK_LIBRARIES(stkEstimateTensors ${ITK_LIBRARIES} ${VTK_LIBRARIES} SuperResolution)
+
+ADD_EXECUTABLE(stkEstimateTensor_DispField STKEstimateTensors_DispField.cpp)
+TARGET_LINK_LIBRARIES(stkEstimateTensor_DispField ${ITK_LIBRARIES} SuperResolution) 
 
 ADD_EXECUTABLE(stkEstimateTensors_v2 STKTensorEstimation_v2.cpp)
 TARGET_LINK_LIBRARIES(stkEstimateTensors_v2 ${ITK_LIBRARIES} ${VTK_LIBRARIES} SuperResolution)

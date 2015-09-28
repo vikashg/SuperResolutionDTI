@@ -47,6 +47,7 @@ int main (int argc, char *argv[])
      const float kappa_L   = cl.follow(0.05, 1, "-k");
      const float lambda_L  = cl.follow(0.25, 1, "-lamb_L");
 
+
      std::cout << file_g_n << std::endl;
     
     // Usual Typedefs
@@ -54,7 +55,7 @@ int main (int argc, char *argv[])
     const int ImageDim  =3;
 
     typedef itk::Image<RealType, ImageDim> ScalarImageType;
-    typedef itk::Vector<RealType, ImageDim> VectorType;
+    typedef itk::Vector<double, ImageDim> VectorType;
     typedef itk::Image<VectorType, ImageDim> VectorImageType;
 
 
@@ -139,6 +140,12 @@ int main (int argc, char *argv[])
    writer->SetFileName("tensorImage_stupid.nii.gz");
    writer->SetInput(tensorImage);
    writer->Update();
+
+   // Here compute the map
+
+
+
+
 
 /*
    TensorImageType::Pointer logTensorImage = utils.LogTensorImageFilter(dt_npt, maskImage);

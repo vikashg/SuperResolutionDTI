@@ -7,23 +7,23 @@
 
 #include "ComposeImage.h"
 
-void ComposeImageFilter::GetLRImage(ImageType::Pointer image)
+ComposeImageFilter::ImageType::Pointer ComposeImageFilter::GetLRImage(ImageType::Pointer image)
 {
 	m_imageLR = image;
-//	std::cout << "Read LR image" << std::endl;
+	std::cout << "Read LR image" << std::endl;
 }
 
-void ComposeImageFilter::GetHRImage(ImageType::Pointer image)
+ComposeImageFilter::ImageType::Pointer ComposeImageFilter::GetHRImage(ImageType::Pointer image)
 {
 
 	m_imageHR = image;
-//	std::cout << "Read HR image" << std::endl;
+	std::cout << "Read HR image" << std::endl;
 }
 
 void ComposeImageFilter::ReadMatrix(SparseMatrixType matrix)
 {
 	m_matrix = matrix;
-//	std::cout << "Read Matrix" << std::endl;
+	std::cout << "Read Matrix" << std::endl;
 }
 
 ComposeImageFilter::ImageType::IndexType ComposeImageFilter::ComputeImageIndex(long int N, ImageType::Pointer image)
@@ -56,12 +56,12 @@ ComposeImageFilter::ImageType::Pointer ComposeImageFilter::ComposeIt()
 	outputImage->Allocate();
 	outputImage->FillBuffer(0.0);
 
-//	std::cout << "outputImage" << std::endl;
+	std::cout << "outputImage" << std::endl;
 
 	ImageType::IndexType testIndex;
 	testIndex[0] = 0; testIndex[1]=0; testIndex[2]=0;
 
-//	std::cout << m_matrix.rows() << " " << m_matrix.cols() << std::endl;
+	std::cout << m_matrix.rows() << " " << m_matrix.cols() << std::endl;
 
 	for (int i=0; i< m_matrix.rows() ; i++ )
 	{

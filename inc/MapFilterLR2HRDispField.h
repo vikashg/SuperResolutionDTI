@@ -4,12 +4,14 @@
  *  Created on: Aug 30, 2015
  *      Author: vgupta
  */
-#define TOTAL_PTS 9000000
+//#define TOTAL_PTS 9000000
+#define TOTAL_PTS 10
 
 #ifndef INC_MAPFILTERLR2HRDISPFIELD_H_
 #define INC_MAPFILTERLR2HRDISPFIELD_H_
 
 #include "itkImage.h"
+#include "CopyImage.h"
 #include "itkPointSet.h"
 #include "itkPoint.h"
 #include <iostream>
@@ -23,8 +25,10 @@
 #include "itkDisplacementFieldTransform.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
+#include "../src/sobol.hpp"
+#include "itkImageRegionIterator.h"
 
-class MapFilterLR2HR1
+class MapFilterLR2HRDisp
 {
 	typedef float RealType;
 	typedef itk::Image<RealType,3> ImageType;
@@ -35,15 +39,16 @@ class MapFilterLR2HR1
 	typedef TransformFileReaderType::TransformListType TransformListType;
 	typedef itk::TransformBase TransformBaseType;
 	typedef itk::AffineTransform<RealType, 3> AffineTransformType;
-
+	typedef itk::ImageRegionIterator<ImageType> ScalarIterator;
+	
     typedef itk::ImageMaskSpatialObject<3> MaskSpatialObjectType;
     typedef MaskSpatialObjectType::ImageType MaskSpatialImageType;
     typedef itk::ImageFileReader<MaskSpatialImageType> MaskSpatialImageReader;
 
 
-	typedef itk::Vector<RealType,3> VectorType;
+	typedef itk::Vector<double,3> VectorType;
 	typedef itk::Image<VectorType,3> DisplacementFieldImageType;
-	typedef itk::DisplacementFieldTransform<RealType, 3> DisplacementFieldTransformType;
+	typedef itk::DisplacementFieldTransform<double, 3> DisplacementFieldTransformType;
 public:
 	void ComputeMapWithDefField( );
 	vnl_sparse_matrix<float> GetLR2HRMatrix();

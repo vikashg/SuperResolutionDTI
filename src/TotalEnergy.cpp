@@ -12,20 +12,35 @@ void TotalEnergy::ReadGradientImageList(VectorImageListType GradList)
 	m_GradList = GradList;
 }
 
-void TotalEnergy::ReadMaskImage(ScalarImageType::Pointer image)
+void TotalEnergy::ReadPredImageList(ImageListType imageList)
 {
-	m_MaskImage = image;
+	m_predList = imageList;
 }
 
+void TotalEnergy::ReadLRMaskImage(ScalarImageType::Pointer image)
+{
+	m_LRMaskImage = image;
+}
+
+void TotalEnergy::ReadHRMaskImage(ScalarImageType::Pointer image)
+{
+	m_HRMaskImage = image;
+}
 void TotalEnergy::ReadB0Image(ScalarImageType::Pointer image)
 {
 	m_B0Image = image;
 }
 
-void TotalEnergy::ReadImageList(ImageListType DWIList)
+void TotalEnergy::ReadMapMatrixHR2LR(SparseMatrixType map)
+{
+	m_MapHR2LR = map;
+}
+
+void TotalEnergy::ReadObsImageList(ImageListType DWIList)
 {
 	m_DWIList = DWIList;
 }
+
 
 void TotalEnergy::ReadBValue(RealType bVal)
 {
@@ -40,153 +55,183 @@ void TotalEnergy::ReadKappa(RealType kappa)
 void TotalEnergy::ReadSigma(vnl_vector<RealType> sigma)
 {
 	m_Sigma = sigma;
+
 }
 
-TotalEnergy::RealType TotalEnergy::GaussianNoise_Frac(TensorImageType::Pointer LogtensorImage)
+
+void TotalEnergy::SetFracFlag(bool flag)
 {
-	RealType Tots=0;
-
-		ScalarImageIterator itMask(m_MaskImage, m_MaskImage->GetLargestPossibleRegion());
-		TensorImageIterator itLogTens(LogtensorImage, LogtensorImage->GetLargestPossibleRegion());
-		ScalarImageIterator itB0(m_B0Image, m_B0Image->GetLargestPossibleRegion());
-
-		int numOfImages = m_DWIList.size();
-		TensorUtilities utilsTensor;
-
-		ScalarImageType::IndexType testIndex;
-		testIndex[0]=23; testIndex[1]=39; testIndex[2]=7;
-
-		for (itLogTens.GoToBegin(), itB0.GoToBegin(), itMask.GoToBegin();
-			!itLogTens.IsAtEnd(), !itB0.IsAtEnd(), !itMask.IsAtEnd();
-			++itLogTens, ++itB0, ++itMask)
-		{
-			if (itMask.Get() != 0)
-			{
-				for (int i=0; i < numOfImages; i++)
-				{
-				RealType atten_i;
-				vnl_vector<RealType> g_i = m_GradList[i]->GetPixel(itMask.GetIndex()).GetVnlVector();
-				vnl_matrix<RealType> g_mat_i;
-				g_mat_i.set_size(3,1);
-				g_mat_i.set_column(0,g_i);
-
-
-				DiffusionTensorType D = utilsTensor.ExpM(itLogTens.Get());
-				MatrixType D_mat;
-				D_mat.set_size(3,3);
-				D_mat = utilsTensor.ConvertDT2Mat(D);
-
-				MatrixType temp; temp.set_size(1,1);
-				temp = g_mat_i.transpose()*D_mat*g_mat_i;
-
-				atten_i = exp(temp(0,0)*(-1)*m_BVal);
-				RealType obs_i = m_DWIList[i]->GetPixel(itMask.GetIndex())/itB0.Get();
-
-				RealType error_noise = (obs_i - atten_i)*(obs_i - atten_i)/(m_Sigma[i]*m_Sigma[i]);
-
-				 TensorImageType::IndexType testIndex;
-				 testIndex[0]=54; testIndex[1]=21; testIndex[2]=1;
-
-	//			if (itMask.GetIndex() == testIndex)
-	//			{
-	//			std::cout << "In the Total Energy " << itLogTens.Get() << std::endl;
-	//			}
-
-	//			if (isnan(error_noise) == 1)
-	//			{
-	//				std::cout << "error_noise " << itMask.GetIndex() << " " << itLogTens.Get() <<  std::endl;
-	//			}
-				Tots = Tots + error_noise;
-
-				}
-			}
-		}
-
-		return Tots;
+	m_FracFlag = flag;
 }
 
-TotalEnergy::RealType TotalEnergy::GaussianNoise(TensorImageType::Pointer LogtensorImage)
-{
-	RealType Tots=0;
 
-	ScalarImageIterator itMask(m_MaskImage, m_MaskImage->GetLargestPossibleRegion());
-	TensorImageIterator itLogTens(LogtensorImage, LogtensorImage->GetLargestPossibleRegion());
-	ScalarImageIterator itB0(m_B0Image, m_B0Image->GetLargestPossibleRegion());
+
+TotalEnergy::RealType TotalEnergy::GaussianNoise_SR(TensorImageType::Pointer logTensorImage)
+{
+	RealType gaussEnergy =0;
 
 	int numOfImages = m_DWIList.size();
-	TensorUtilities utilsTensor;
-
-	ScalarImageType::IndexType testIndex;
-	testIndex[0]=23; testIndex[1]=39; testIndex[2]=7;
-
-	for (itLogTens.GoToBegin(), itB0.GoToBegin(), itMask.GoToBegin();
-		!itLogTens.IsAtEnd(), !itB0.IsAtEnd(), !itMask.IsAtEnd();
-		++itLogTens, ++itB0, ++itMask)
+	
+	ImageListType predImageList_LR;
+	// Convert PredList to LR;
+	for (int i=0; i < numOfImages; i++)
 	{
-		if (itMask.Get() != 0)
-		{
-			for (int i=0; i < numOfImages; i++)
-			{
-			RealType atten_i;
-			vnl_vector<RealType> g_i = m_GradList[i]->GetPixel(itMask.GetIndex()).GetVnlVector();
-			vnl_matrix<RealType> g_mat_i;
-			g_mat_i.set_size(3,1);
-			g_mat_i.set_column(0,g_i);
+	ComposeImageFilter composeFilter;	
+	composeFilter.GetHRImage(m_predList[i]);
+	composeFilter.GetLRImage(m_LRMaskImage);
+	composeFilter.ReadMatrix(m_MapHR2LR);
+	
+	ScalarImageType::Pointer image_i = composeFilter.ComposeIt();
+	predImageList_LR.push_back(image_i);
 
-
-			DiffusionTensorType D = utilsTensor.ExpM(itLogTens.Get());
-			MatrixType D_mat;
-			D_mat.set_size(3,3);
-			D_mat = utilsTensor.ConvertDT2Mat(D);
-
-			MatrixType temp; temp.set_size(1,1);
-			temp = g_mat_i.transpose()*D_mat*g_mat_i;
-
-			atten_i = exp(temp(0,0)*(-1)*m_BVal)*itB0.Get();
-			RealType obs_i = m_DWIList[i]->GetPixel(itMask.GetIndex());
-
-			RealType error_noise = (obs_i - atten_i)*(obs_i - atten_i)/(m_Sigma[i]*m_Sigma[i]);
-
-			 TensorImageType::IndexType testIndex;
-			 testIndex[0]=54; testIndex[1]=21; testIndex[2]=1;
-
-//			if (itMask.GetIndex() == testIndex)
-//			{
-//			std::cout << "In the Total Energy " << itLogTens.Get() << std::endl;
-//			}
-
-//			if (isnan(error_noise) == 1)
-//			{
-//				std::cout << "error_noise " << itMask.GetIndex() << " " << itLogTens.Get() <<  std::endl;
-//			}
-			Tots = Tots + error_noise;
-
-			}
-		}
 	}
 
-	return Tots;
+	
+	ScalarImageType::IndexType testIndex;
+	testIndex[0]=59; testIndex[1]=58; testIndex[2]=27;
+
+	ScalarImageIterator itLRMask(m_LRMaskImage, m_LRMaskImage->GetLargestPossibleRegion());
+	ScalarImageIterator itB0(m_B0Image, m_B0Image->GetLargestPossibleRegion());
+
+
+	for (int i=0; i < numOfImages; i++)
+	{
+	
+	      std::ostringstream num_con;
+              num_con << i;
+              std::string result  = num_con.str();
+              std::string tempName2 = "PredImage_LR_" + result + ".nii.gz";
+	
+
+	ScalarWriterType::Pointer writer = ScalarWriterType::New();
+	writer->SetFileName(tempName2);
+	writer->SetInput(predImageList_LR[i]);
+	writer->Update();
+
+	ScalarImageIterator it(predImageList_LR[i], predImageList_LR[i]->GetLargestPossibleRegion());
+	
+	for(it.GoToBegin(), itLRMask.GoToBegin(); !it.IsAtEnd(), !itLRMask.IsAtEnd(); ++it, ++itLRMask)
+	{
+		if (itLRMask.Get() != 0)
+		{
+			if ( (isnan(it.Get() ) == 1) || (isinf(it.Get()) ==1 ) )
+			{
+				//check the tensors etc for now a patch
+				it.Set(0.0);
+			}
+		}
+	
+	} 
+
+
+	}
+
+	ScalarImageType::Pointer GaussEnergy = ScalarImageType::New();
+	CopyImage cpImage;
+	cpImage.CopyScalarImage(m_DWIList[0], GaussEnergy);
+
+	for (int i =0; i < numOfImages; i++)		
+	{
+		ScalarImageIterator itPred(predImageList_LR[i],predImageList_LR[i]->GetLargestPossibleRegion());
+		ScalarImageIterator itObs(m_DWIList[i], m_DWIList[i]->GetLargestPossibleRegion());
+			
+		ScalarImageIterator itGauss(GaussEnergy, GaussEnergy->GetLargestPossibleRegion());
+
+		
+	if (m_FracFlag == 1)
+	{
+
+	 	for (itGauss.GoToBegin(), itLRMask.GoToBegin(), itPred.GoToBegin(), itObs.GoToBegin(), itB0.Get(); 
+		!itPred.IsAtEnd(), !itGauss.IsAtEnd(), !itObs.IsAtEnd(), !itLRMask.IsAtEnd(), !itB0.IsAtEnd(); 
+		++itPred, ++itObs, ++itLRMask, ++itB0, ++itGauss)
+		{
+		 if (itLRMask.Get() !=0)
+		 {
+
+			RealType temp_diff =0;
+			temp_diff = (itPred.Get() - itObs.Get());
+			
+			if (itLRMask.GetIndex() == testIndex)
+			{
+				std::cout << "Pred " << itPred.Get() << std::endl;
+			}	 
+	
+			RealType deno =1;
+			RealType energy_vox =0;
+			if(itB0.Get() > 100)
+			{
+				deno = itB0.Get()*m_Sigma[i];
+				energy_vox = temp_diff/deno;				
+			}
+			else
+			{
+			   energy_vox =0;
+			}
+			
+			gaussEnergy += energy_vox*energy_vox;
+			RealType temp = itGauss.Get();
+			itGauss.Set(temp+energy_vox*energy_vox);
+			
+		 }		
+		} 
+	}
+	else
+	{
+		  
+	 	for (itLRMask.GoToBegin(), itPred.GoToBegin(), itObs.GoToBegin(); 
+		!itPred.IsAtEnd(), !itObs.IsAtEnd(), !itLRMask.IsAtEnd(); 
+		++itPred, ++itObs, ++itLRMask)
+		{
+			RealType temp_diff = 0;
+			temp_diff = (itPred.Get() - itObs.Get());
+			RealType  deno =1;
+			deno = m_Sigma[i];
+
+			RealType energy_vox =0;
+			energy_vox = temp_diff/deno;
+			
+			gaussEnergy += energy_vox*energy_vox;
+		
+		}
+	}  
+	}
+	
+	typedef itk::ImageFileWriter<ScalarImageType> ScalarImageWriterType;
+	ScalarImageWriterType::Pointer scalarImageWriter = ScalarImageWriterType::New();
+	scalarImageWriter->SetFileName("GaussEnergy.nii.gz");
+	scalarImageWriter->SetInput(GaussEnergy);
+	scalarImageWriter->Update();
+
+
+
+	return gaussEnergy;
 }
+
 
 TotalEnergy::RealType TotalEnergy::RegularizationEnergy(TensorImageType::Pointer logTensorImage)
 {
 	JointTensorEstimation jTestimation;
-	jTestimation.ReadMaskImage(m_MaskImage);
+	jTestimation.ReadHRMask(m_HRMaskImage);
 	ScalarImageType::Pointer gradMagTensorImage = jTestimation.GradientLogMagTensorImage(logTensorImage) ;
 
-	ScalarImageIterator itMask(m_MaskImage, m_MaskImage->GetLargestPossibleRegion());
+	//std::cout << "GradMagTensorImage " << std::endl;
+
+	ScalarImageIterator itMask(m_HRMaskImage, m_HRMaskImage->GetLargestPossibleRegion());
 	ScalarImageIterator itGrad(gradMagTensorImage, gradMagTensorImage->GetLargestPossibleRegion());
 
 	RealType Total =0;
 	for (itMask.GoToBegin(), itGrad.GoToBegin(); !itMask.IsAtEnd(), !itGrad.IsAtEnd();
 			++itMask, ++itGrad)
 	{
-		RealType regTerm, temp;
+		if (itMask.Get() != 0)
+		{ RealType regTerm, temp;
 		temp = itGrad.Get()/m_Kappa;
 		temp = 2*sqrt(1+ temp*temp) -2;
 		Total = Total + temp;
+		}
 	}
 
 	return Total;
 }
+
 

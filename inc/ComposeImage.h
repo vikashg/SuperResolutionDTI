@@ -15,9 +15,8 @@
 #include <iostream>
 #include <vnl/vnl_sparse_matrix.h>
 #include <vcl_vector.h>
-#include "itkTransform.h"
-#include "itkAffineTransform.h"
 #include "itkTransformFileReader.h"
+
 
 class ComposeImageFilter
 {
@@ -26,8 +25,8 @@ class ComposeImageFilter
     typedef vnl_sparse_matrix_pair<float> pair_t;
 
 public:
-    ImageType::Pointer GetLRImage(ImageType::Pointer imageLR);
-    ImageType::Pointer GetHRImage(ImageType::Pointer imageHR);
+    void GetLRImage(ImageType::Pointer imageLR);
+    void GetHRImage(ImageType::Pointer imageHR);
     void ReadMatrix(SparseMatrixType matrix);
     ImageType::Pointer ComposeIt();
  

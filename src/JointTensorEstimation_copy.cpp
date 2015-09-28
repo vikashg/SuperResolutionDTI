@@ -11,7 +11,6 @@
 #include "itkImageFileWriter.h"
 #include "math.h"
 
-
 using namespace std;
 void JointTensorEstimation::ReadDWIListLR(ImageListType list)
 {
@@ -38,7 +37,7 @@ void JointTensorEstimation::ReadGradientList(VectorImageListType vecList)
 	m_GradList = vecList;
 }
 
-void JointTensorEstimation::ReadLambda(RealType lambda)
+void JointTensorEstimation::ReadLamba(RealType lambda)
 {
 	m_Lambda = lambda;
 }
@@ -63,6 +62,10 @@ void JointTensorEstimation::ReadInitialTensorImage(TensorImageType::Pointer tens
 	m_dt_init = tensorImage;
 }
 
+void JointTensorEstimation::ReadMaskImage(ScalarImageType::Pointer maskImage)
+{
+	m_maskImage = maskImage;
+}
 
 void JointTensorEstimation::ReadStepSize(RealType step_size)
 {
@@ -104,17 +107,12 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 	
 	int numOfImages = m_DWIListHR.size();
 
-  TensorImageType::IndexType IndexG, IndexB;
-                IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
-
-               IndexB[0]=123; IndexB[1]=159; IndexB[2]=201;
-
-//	std::cout << "Exp TensorImage Filter" << std::endl;
 	TensorUtilities utilsTensor;
 	CopyImage cpImage;
-	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter (logTensorImage, m_HRmask);
+	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter (logTensorImage, m_maskImage);
 
-//	std::cout << "Exp TensorImage Filter  Done " << std::endl;
+	std::cout << "Exp TensorImage Filter" << std::endl;
+
 	//Compute LR PredictedImage
 
 	ImageListType DiffImageList;	
@@ -122,7 +120,7 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 	for (int i=0; i < numOfImages ; i++)
 	{
 
-//		std::cout << "Image " << i << " started" << std::endl;
+		std::cout << "Image " << i << " started" << std::endl;
 		ScalarImageIterator itHRMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
 		ScalarImageIterator itB0(m_B0Image_HR, m_B0Image_HR->GetLargestPossibleRegion());
 		TensorImageIterator itTens(tensorImage, tensorImage->GetLargestPossibleRegion());
@@ -161,20 +159,10 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 		attenImage_i->SetPixel(itHRMask.GetIndex(), atten_i);
 		itPredHR.Set(atten_i);
 				
-	
-/*		if (itHRMask.GetIndex() == IndexG)
-		{
-		   std::cout << " PredHR Good " << atten_i << " " << itB0.Get() << std::endl;
-		}
-		if (itHRMask.GetIndex() == IndexB)
-		{
-		   std::cout << " PredHR  Bad " << atten_i << " " << itB0.Get() << std::endl;
-		}
-*/
-	   }			     
+		   }			     
 		}
 		
-		//std::cout << "Done " << std::endl;	
+		std::cout << "Done " << std::endl;	
 
 //		AttenuationList.push_back(attenImage_i);
 		
@@ -194,50 +182,15 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 		ScalarImageType::Pointer diffImage_LR_i = subtractImageFilter->GetOutput();
 		diffImage_LR_i->DisconnectPipeline();
 
-		//SquareImageFilterType::Pointer squareImageFilter = SquareImageFilterType::New();
-	//	squareImageFilter->SetInput(m_B0Image_LR);
-	//	squareImageFilter->Update();
-		
-	//	ScalarImageType::Pointer squared_B0Image = squareImageFilter->GetOutput();
-	//	squared_B0Image->DisconnectPipeline();
-
-		/*DivideByImageFilterType::Pointer divideImageFilter = DivideByImageFilterType::New();
+		DivideImageFilterType::Pointer divideImageFilter = DivideImageFilterType::New();
 		divideImageFilter->SetInput1(diffImage_LR_i);
-		divideImageFilter->SetInput2(squared_B0Image);
+		divideImageFilter->SetInput2(m_B0Image_LR);
 		divideImageFilter->Update();
 
 		ScalarImageType::Pointer diffImage_Frac_i = divideImageFilter->GetOutput();
 		diffImage_Frac_i->DisconnectPipeline();
-*/
-               ScalarImageType::Pointer diffImage_Frac_i = ScalarImageType::New();	
-		cpImage.CopyScalarImage(m_B0Image_LR, diffImage_Frac_i);
 
-	       ScalarImageIterator itFrac(diffImage_Frac_i, diffImage_Frac_i->GetLargestPossibleRegion());
-	       ScalarImageIterator itB0LR(m_B0Image_LR, m_B0Image_LR->GetLargestPossibleRegion());
-	       ScalarImageIterator itDiff(diffImage_LR_i, diffImage_LR_i->GetLargestPossibleRegion());
-		ScalarImageIterator itLRMask(m_LRmask, m_LRmask->GetLargestPossibleRegion());
 
-		for (itLRMask.GoToBegin(), itFrac.GoToBegin(), itDiff.GoToBegin(), itB0LR.GoToBegin();
-		!itLRMask.IsAtEnd(), !itDiff.IsAtEnd(), !itB0LR.IsAtEnd(), !itFrac.IsAtEnd();
-		++itLRMask, ++itDiff, ++itB0LR, ++itFrac)
-		{
-		 if ( itLRMask.Get() !=0)
-		{
-		  if(itB0LR.Get() > 10)
-		  {
-			RealType temp =0;
-			temp = itDiff.Get()/(itB0LR.Get()*itB0LR.Get()*m_Sigma[i]*m_Sigma[i]);	
-		  	itFrac.Set(temp);
-		  }
-		  else
-		{
-			itFrac.Set(0.0);
-		}
-
-		}
-		}
-
-		
 		ComposeImageFilter composeFilter2;
 		composeFilter2.GetHRImage(diffImage_Frac_i);
 		composeFilter2.GetLRImage(m_HRmask);
@@ -259,11 +212,13 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 
 	int numOfImages = m_DWIListLR.size();
 
+	std::cout << "Exp TensorImage Filter " << std::endl;
 
 	TensorUtilities utilsTensor;
 	CopyImage cpImage;
 	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter (logTensorImage,m_HRmask);
 
+	std::cout << "Exp TensorImage Filter... Done " << std::endl;
 	//Compute LR PredictedImage
 
 	ImageListType DiffImageList;
@@ -313,7 +268,7 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 		   }
 		}
 
-	//	std::cout << "Atten " << i << std::endl;
+		std::cout << "Atten " << i << std::endl;
 		//AttenuationList.push_back(attenImage_i);
 
 		ComposeImageFilter composeFilter;
@@ -375,113 +330,6 @@ JointTensorEstimation::ImageListType JointTensorEstimation::ComputeDifferenceIma
 
 
 
-JointTensorEstimation::ImageListType JointTensorEstimation::ComputeAttenuation_Frac(TensorImageType::Pointer logTensorImage)
-{
-	int numOfImages= m_DWIListLR.size();
-	TensorUtilities utilsTensor;
-	CopyImage cpImage;
-	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter(logTensorImage, m_HRmask);
-
-	ImageListType AttenuationImageList;
-
-	for (int i=0; i < numOfImages; i++)
-	{
-		ScalarImageIterator itHRMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
-		ScalarImageIterator itB0(m_B0Image_HR, m_B0Image_HR->GetLargestPossibleRegion());
-		TensorImageIterator itTens(tensorImage, tensorImage->GetLargestPossibleRegion());
-
-		ScalarImageType::Pointer attenImage_i = ScalarImageType::New();
-		cpImage.CopyScalarImage(m_B0Image_HR, attenImage_i);
-
-		for ( itHRMask.GoToBegin(), itB0.GoToBegin(), itTens.GoToBegin(); !itHRMask.IsAtEnd(), !itB0.IsAtEnd(), !itTens.IsAtEnd();  ++itHRMask, ++itB0, ++itTens)
-		{
-		if (itHRMask.Get() != 0)
-		{
-		RealType atten_i;
-		vnl_vector<double> g_temp_i= m_GradList[i]->GetPixel(itHRMask.GetIndex()).GetVnlVector();
-		vnl_vector<RealType> g_i; g_i.set_size(3);
-		vnl_copy(g_temp_i, g_i);
-
-
-		 vnl_matrix<RealType> g_mat_i;
-                 g_mat_i.set_size(3,1);
-                 g_mat_i.set_column(0,g_i);
-                 DiffusionTensorType D = itTens.Get();
-                 MatrixType D_mat;
-                 D_mat.set_size(3,3);
-                 D_mat = utilsTensor.ConvertDT2Mat(D);
-                 MatrixType temp; temp.set_size(1,1);
-                 temp = g_mat_i.transpose()*D_mat*g_mat_i;
-
-                 atten_i = exp(temp(0,0)*(-1)*m_bval);
-
-		attenImage_i->SetPixel(itHRMask.GetIndex(), atten_i);
-
-		}
-	}
-
-		AttenuationImageList.push_back(attenImage_i);
-
-	}
-
-	return AttenuationImageList;
-}
-
-
-JointTensorEstimation::ImageListType JointTensorEstimation::ComputeAttenuation(TensorImageType::Pointer logTensorImage)
-{
-	int numOfImages= m_DWIListLR.size();
-	TensorUtilities utilsTensor;
-	CopyImage cpImage;
-	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter(logTensorImage, m_HRmask);
-
-	ImageListType AttenuationImageList;
-        
-	for (int i=0; i < numOfImages; i++)
-	{
-		ScalarImageIterator itHRMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
-		ScalarImageIterator itB0(m_B0Image_HR, m_B0Image_HR->GetLargestPossibleRegion());
-		TensorImageIterator itTens(tensorImage, tensorImage->GetLargestPossibleRegion());
-	
-		ScalarImageType::Pointer attenImage_i = ScalarImageType::New();
-		cpImage.CopyScalarImage(m_B0Image_HR, attenImage_i);
-		
-		for ( itHRMask.GoToBegin(), itB0.GoToBegin(), itTens.GoToBegin(); !itHRMask.IsAtEnd(), !itB0.IsAtEnd(), !itTens.IsAtEnd();  ++itHRMask, ++itB0, ++itTens)
-		{
-		if (itHRMask.Get() != 0)
-		{	
-		RealType atten_i;
-		vnl_vector<double> g_temp_i= m_GradList[i]->GetPixel(itHRMask.GetIndex()).GetVnlVector();
-		vnl_vector<RealType> g_i; g_i.set_size(3);
-		vnl_copy(g_temp_i, g_i);
-
-
-		 vnl_matrix<RealType> g_mat_i;
-                 g_mat_i.set_size(3,1);
-                 g_mat_i.set_column(0,g_i);
-                 DiffusionTensorType D = itTens.Get();
-                 MatrixType D_mat;
-                 D_mat.set_size(3,3);
-                 D_mat = utilsTensor.ConvertDT2Mat(D);
-                 MatrixType temp; temp.set_size(1,1);
-                 temp = g_mat_i.transpose()*D_mat*g_mat_i;
-
-                 atten_i = exp(temp(0,0)*(-1)*m_bval)*itB0.Get();
-
-		attenImage_i->SetPixel(itHRMask.GetIndex(), atten_i);
-
-		}
-	}
-
-		AttenuationImageList.push_back(attenImage_i);
-
-	}
-
-	return AttenuationImageList;
-}
-
-
-
 JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDelSim_Frac_DispField(TensorImageType::Pointer logTensorImage)
 {
 	TensorImageType::Pointer delTotalSim = TensorImageType::New();
@@ -500,14 +348,8 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 	ScalarImageIterator itB0(m_B0Image_HR, m_B0Image_HR->GetLargestPossibleRegion());
 
 	ImageListType DiffImageList, AttenuationList;
-	DiffImageList = ComputeDifferenceImages_Frac(logTensorImage);
-	AttenuationList = ComputeAttenuation(logTensorImage);
+	DiffImageList = ComputeDifferenceImages(logTensorImage);
 
-	ScalarImageType::IndexType IndexG, IndexB;
-	IndexB[0]=123; IndexB[1]=159; IndexB[2]=201;
-	IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
-
-	
 	for (itB0.GoToBegin(), itTens.GoToBegin(), itDelSimTotal.GoToBegin(), itHRMask.GoToBegin(); !itB0.IsAtEnd(), !itTens.IsAtEnd(), !itDelSimTotal.IsAtEnd(), !itHRMask.IsAtEnd(); ++itB0, ++itTens, ++itDelSimTotal, ++itHRMask)
 	{
 	 if (itHRMask.Get() != 0)
@@ -526,13 +368,6 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 
 				totalDelSim = totalDelSim + delSim_DelL_i;
 
-	/*		if (itHRMask.GetIndex() == IndexG)
-			{ std::cout << "Del G Exp L Good " << i << delG_ExpL << std::endl; 
-			}
-			if (itHRMask.GetIndex() == IndexB)
-			{	
-			std::cout << "Del G Exp L Bad " << i << delG_ExpL << std::endl;
-			}*/
 		}
 
 		itDelSimTotal.Set(totalDelSim);
@@ -540,21 +375,8 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 
 	}
 
-
-/*		for (int i =0; i < numOfImages ; i++)
-		{
-			std::cout << "Attenuation Good " << i << AttenuationList[i]->GetPixel(IndexG) << std::endl;
-			std::cout << "Attenuation Bad  " << i << AttenuationList[i]->GetPixel(IndexB) << std::endl;
-			std::cout << "*******************" << std::endl;
-
-			std::cout << "DiffImageList Good " << i << DiffImageList[i]->GetPixel(IndexG) << std::endl;
-			std::cout << "DiffImageList  Bad " << i << DiffImageList[i]->GetPixel(IndexB) << std::endl;
-		}
-*/
 	return delTotalSim;
 }
-
-
 
 
 JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDelSim_DispField(TensorImageType::Pointer logTensorImage)
@@ -562,12 +384,6 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 	TensorImageType::Pointer delTotalSim = TensorImageType::New();
 	CopyImage cpImage;
 	cpImage.CopyTensorImage(m_dt_init, delTotalSim);
-
-       TensorImageType::IndexType IndexG, IndexB;
-       IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
-       IndexB[0]=123; IndexB[1]=159; IndexB[2]=201;
-
-
 
 	int numOfImages = m_DWIListLR.size();
 	TensorUtilities utilsTensor;
@@ -582,7 +398,6 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 
 	ImageListType DiffImageList, AttenuationList;
 	DiffImageList = ComputeDifferenceImages(logTensorImage);
-	AttenuationList = ComputeAttenuation(logTensorImage);
 
 	for (itB0.GoToBegin(), itTens.GoToBegin(), itDelSimTotal.GoToBegin(), itHRMask.GoToBegin();
 			!itB0.IsAtEnd(), !itTens.IsAtEnd(), !itDelSimTotal.IsAtEnd(), !itHRMask.IsAtEnd();
@@ -599,14 +414,6 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 				DiffusionTensorType delSim_DelL_i;
 				delSim_DelL_i = delG_ExpL*(DiffImageList[i]->GetPixel(itHRMask.GetIndex())*(-m_bval)*AttenuationList[i]->GetPixel(itHRMask.GetIndex()));
 				totalDelSim = totalDelSim + delSim_DelL_i;
-		
-		   if (itHRMask.GetIndex() == IndexG)
-		   {	std::cout << "IndexG" << std::endl;
-			std::cout << "delG_ExpL " << delG_ExpL << std::endl; 
-			}
-		   if (itHRMask.GetIndex() == IndexB)
-		   {	std::cout << "IndexB" << std::endl;
-			std::cout << "delG_ExpL " << delG_ExpL << std::endl;} 
 		}
 		
 		itDelSimTotal.Set(totalDelSim);	
@@ -614,22 +421,78 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDe
 	
 	}
 
-
-
-		for (int i=0; i < numOfImages; i++)
-		{
-			std::cout << "Attenuation " << i << " Good Tensor " << AttenuationList[i]->GetPixel(IndexG) << std::endl;
-			std::cout << "Attenuation " << i << "  Bad Tensor " << AttenuationList[i]->GetPixel(IndexB) << std::endl;
-			
-			std::cout << "Diff Image List " << i << "Good Tensor" << DiffImageList[i]->GetPixel(IndexG) << std::endl;
-			std::cout << "Diff Image List " << i << " Badd Tensor" << DiffImageList[i]->GetPixel(IndexB) << std::endl;
-		}
-
-
 	return delTotalSim;	
 }
 
 
+JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDelSim_nonFrac(TensorImageType::Pointer logTensorImage)
+{
+	TensorImageType::Pointer delTotalSim  = TensorImageType::New();
+	CopyImage cpImage;
+	cpImage.CopyTensorImage(m_dt_init, delTotalSim);
+
+	int numOfImages = m_DWIListLR.size();
+
+	TensorUtilities utilsTensor;
+	TensorImageType::Pointer tensorImage = utilsTensor.ExpTensorImageFilter(logTensorImage, m_maskImage);
+
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
+	TensorImageIterator itDelSimTotal(delTotalSim, delTotalSim->GetLargestPossibleRegion());
+	TensorImageIterator itLogTens(logTensorImage, logTensorImage->GetLargestPossibleRegion());
+	TensorImageIterator itTens(tensorImage, tensorImage->GetLargestPossibleRegion());
+	ScalarImageIterator itB0(m_B0Image_HR, m_B0Image_HR->GetLargestPossibleRegion());
+
+	for (itMask.GoToBegin(), itDelSimTotal.GoToBegin(), itLogTens.GoToBegin(), itB0.GoToBegin();
+			!itMask.IsAtEnd(), !itDelSimTotal.IsAtEnd(), !itLogTens.IsAtEnd(), !itB0.IsAtEnd();
+			++itMask, ++itDelSimTotal, ++itLogTens, ++itB0)
+	{
+		if (itMask.Get() != 0)
+		{
+			DiffusionTensorType totalDelSim;
+			for (int i=0; i < numOfImages; i++)
+			{
+				RealType atten_i;
+				vnl_vector<double> g_temp_i = m_GradList[i]->GetPixel(itMask.GetIndex()).GetVnlVector();
+				vnl_vector<RealType> g_i; g_i.set_size(3);
+				vnl_copy(g_temp_i, g_i);
+
+				vnl_matrix<RealType> g_mat_i;
+				g_mat_i.set_size(3,1);
+				g_mat_i.set_column(0,g_i);
+
+
+				DiffusionTensorType D = utilsTensor.ExpM(itLogTens.Get());
+				MatrixType D_mat;
+				D_mat.set_size(3,3);
+				D_mat = utilsTensor.ConvertDT2Mat(D);
+
+				MatrixType temp; temp.set_size(1,1);
+				temp = g_mat_i.transpose()*D_mat*g_mat_i;
+
+				atten_i = exp(temp(0,0)*(-1)*m_bval)*itB0.Get();
+				RealType obsValue = m_DWIListHR[i]->GetPixel(itMask.GetIndex());
+
+				RealType diff = (atten_i - obsValue)/(m_Sigma[i]*m_Sigma[i]);
+
+				DiffusionTensorType delG_ExpL;
+
+				delG_ExpL = utilsTensor.MatrixExpDirDerivative(itLogTens.Get(), m_GradList[i]->GetPixel(itMask.GetIndex()), itMask.GetIndex());
+
+
+				DiffusionTensorType delSim_DelL_i;
+				delSim_DelL_i = delG_ExpL*diff*atten_i*(-m_bval);
+
+				totalDelSim = totalDelSim + delSim_DelL_i;
+
+			}
+
+			itDelSimTotal.Set(totalDelSim);
+		}
+	}
+
+
+	return delTotalSim;
+}
 
 JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeDelReg(TensorImageType::Pointer FirstTerm, TensorImageType::Pointer SecTerm)
 {
@@ -650,7 +513,7 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeSe
 {
 	ScalarImageType::SizeType radiusS; radiusS.Fill(1);
 	TensorImageType::SizeType radiusT; radiusT.Fill(1);
-	ScalarImageIterator itMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 	ScalarNeighIterator itPsi(radiusS, PsiImage, PsiImage->GetLargestPossibleRegion());
 	TensorNeighIterator itLogTens(radiusT, LogTensorImage, LogTensorImage->GetLargestPossibleRegion());
 
@@ -706,7 +569,7 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeFi
 	cpImage.CopyTensorImage(LaplaceTensorImage, FirstTerm);
 
 	ScalarImageIterator itPsi(PsiImage, PsiImage->GetLargestPossibleRegion());
-	ScalarImageIterator itMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 	TensorImageIterator itLap(LaplaceTensorImage, LaplaceTensorImage->GetLargestPossibleRegion());
 	TensorImageIterator itFirst(FirstTerm, FirstTerm->GetLargestPossibleRegion());
 
@@ -731,7 +594,7 @@ JointTensorEstimation::ScalarImageType::Pointer JointTensorEstimation::GradientL
 	ScalarImageType::Pointer gradMagTensorImage = ScalarImageType::New();
 
 	CopyImage cpImage;
-	cpImage.CopyScalarImage(m_HRmask, gradMagTensorImage);
+	cpImage.CopyScalarImage(m_maskImage, gradMagTensorImage);
 
 	TensorImageType::SizeType radius; radius.Fill(1);
 
@@ -744,7 +607,7 @@ JointTensorEstimation::ScalarImageType::Pointer JointTensorEstimation::GradientL
 
 
 	ScalarImageIterator itGradMag(gradMagTensorImage, gradMagTensorImage->GetLargestPossibleRegion());
-	ScalarImageIterator itMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 	TensorImageIterator itTens(logTensorImage, logTensorImage->GetLargestPossibleRegion());
 	TensorNeighIterator itNeighTens(radius, logTensorImage, logTensorImage->GetLargestPossibleRegion());
 
@@ -791,7 +654,7 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeLa
 	TensorImageType::SpacingType spacing = LogTensorImage->GetSpacing();
 	TensorImageType::SizeType radius; radius.Fill(1);
 
-	ScalarImageIterator itMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 	TensorNeighIterator itLogTens(radius, LogTensorImage,LogTensorImage->GetLargestPossibleRegion());
 	TensorImageIterator itLapTens(LaplaceTensorImage, LaplaceTensorImage->GetLargestPossibleRegion());
 
@@ -819,7 +682,7 @@ JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::ComputeLa
 
 JointTensorEstimation::ScalarImageType::Pointer JointTensorEstimation::ComputePsiImage(ScalarImageType::Pointer gradMagImage)
 {
-	ScalarImageIterator itMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 	ScalarImageIterator itGradMag(gradMagImage, gradMagImage->GetLargestPossibleRegion());
 
 	ScalarImageType::Pointer psiImage = ScalarImageType::New();
@@ -849,227 +712,106 @@ JointTensorEstimation::ScalarImageType::Pointer JointTensorEstimation::ComputePs
 	return psiImage;
 
 }
-
-
+/*
 JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::UpdateTerms()
 {
-		
-	TensorImageType::IndexType IndexG, IndexB;
-		IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
+    TensorImageType::IndexType testIdx;
+    testIdx[0]=49; testIdx[1]=21; testIdx[2] = 9;
 
-		IndexB[0]=123; IndexB[1]=159; IndexB[2]=201;
+    TensorUtilities utilsTens;
+    CopyImage cpImage;
 
+    TensorImageType::Pointer logTensorImage_n_1 = TensorImageType::New();
+    cpImage.CopyTensorImage(m_dt_init,logTensorImage_n_1 );
 
-	//First Compute Total Energy
-	TensorUtilities utils;
- 	std::vector<RealType> Energy_vec;
+    TotalEnergy totEnergy;
+    totEnergy.ReadB0Image(m_B0Image_HR);
+    totEnergy.ReadBValue(1);
+    totEnergy.ReadGradientImageList(m_GradList);
+    totEnergy.ReadImageList(m_DWIListHR);
+    totEnergy.ReadKappa(m_kappa);
+    totEnergy.ReadSigma(m_Sigma);
+    totEnergy.ReadMaskImage(m_maskImage);
 
-	CopyImage cpImage;
+    TensorImageType::Pointer logTensorImage_n = utilsTens.LogTensorImageFilter(m_dt_init,m_maskImage);
 
-	TensorImageType::Pointer log_tensorImage_init = utils.LogTensorImageFilter(m_dt_init, m_HRmask); 
-	ImageListType PredImageList = ComputeAttenuation(log_tensorImage_init);
+    TensorImageType::IndexType testIndex;
+    testIndex[0]=54; testIndex[1]=21; testIndex[2]=1;
 
-	//std::cout << "Computed PredImageList " << std::endl;
+    ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
 
-	
-	TensorImageType::Pointer logTensorImage_n_1 = TensorImageType::New();
-	cpImage.CopyTensorImage(m_dt_init, logTensorImage_n_1);
+    std::vector<RealType> Energy_vec;
 
-	TotalEnergy totEnergyComputation;
-	totEnergyComputation.ReadObsImageList(m_DWIListLR);
-	totEnergyComputation.ReadPredImageList(PredImageList);
-	totEnergyComputation.ReadB0Image(m_B0Image_LR);
-	totEnergyComputation.ReadSigma(m_Sigma);
-	totEnergyComputation.ReadKappa(m_kappa);
-	totEnergyComputation.ReadLRMaskImage(m_LRmask);
-	totEnergyComputation.ReadHRMaskImage(m_HRmask);
-	totEnergyComputation.SetFracFlag(1);
-	totEnergyComputation.ReadMapMatrixHR2LR(m_MapHR2LR);
+    RealType gaussian = totEnergy.GaussianNoise(logTensorImage_n);
+    RealType RegEnergy = totEnergy.RegularizationEnergy(logTensorImage_n);
+    RealType totalEnergy =  gaussian + m_Lambda*RegEnergy;
 
-	
-	//Compute Regularization Energy
-	RealType regEnergy_0 =0;
-	regEnergy_0 = totEnergyComputation.RegularizationEnergy(log_tensorImage_init);
-	std::cout << "RegEnergy Computed " << std::endl;	
-
-	RealType GaussEnergy_0 =0;
-	 GaussEnergy_0 = totEnergyComputation.GaussianNoise_SR(log_tensorImage_init);
-
-	//std::cout << "GaussEnergy Computed " << std::endl;
-
-	RealType totalEnergy_0 =0;
-
-	 totalEnergy_0 = GaussEnergy_0 + m_Lambda*regEnergy_0;
-	
-	std::cout << fixed;	
-	std::cout << "Gauss Energy 0 " << GaussEnergy_0 << std::endl;
-	std::cout << "Reg Energy 0 " << regEnergy_0 << std::endl;
-
-	
-	Energy_vec.push_back(totalEnergy_0);
-
-	//std::cout << "Computed TotalEnergy " << std::endl;
-	
-	TensorImageType::Pointer logTensorImage_n = log_tensorImage_init;
+     Energy_vec.push_back(totalEnergy);
 
 
-	ScalarImageIterator itHRMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
-	for (int i =0; i < m_Iterations; i++)
-	{
-	 TensorImageType::Pointer delSim = TensorImageType::New();
-	 cpImage.CopyTensorImage(logTensorImage_n, delSim);
-	 delSim = ComputeDelSim_Frac_DispField(logTensorImage_n);
-	
-		std::cout << "Computed Del Sim Frac " << std::endl;
+    for (int i=0; i < m_Iterations; i++ )
+    {
 
-		std::cout << "Del Sim Frac Good Tensor " << delSim->GetPixel(IndexG) << std::endl;
-		std::cout << "Del Sim Frac  Bad Tensor " << delSim->GetPixel(IndexB) << std::endl;
-
-	
-	TensorImageType::Pointer delRegTerm = TensorImageType::New();
-	cpImage.CopyTensorImage(delSim, delRegTerm);
-	ScalarImageType::Pointer gradMagTensorImage = GradientLogMagTensorImage(logTensorImage_n);
-
-	ScalarImageType::Pointer psiImage = ComputePsiImage(gradMagTensorImage);
-	TensorImageType::Pointer LaplaceImage = ComputeLaplaceTensor(logTensorImage_n);
-	TensorImageType::Pointer FirstTerm = ComputeFirstTermDelReg(psiImage, logTensorImage_n);
-	TensorImageType::Pointer SecTerm = ComputeSecondTermDelReg(psiImage, logTensorImage_n);
-	 delRegTerm = ComputeDelReg(FirstTerm, SecTerm);
+    TensorImageType::Pointer delSim = ComputeDelSim_Frac(logTensorImage_n);
 
 
-		
-	TensorImageIterator itDelSim(delSim, delSim->GetLargestPossibleRegion());
-	TensorImageIterator itDelReg(delRegTerm, delRegTerm->GetLargestPossibleRegion());
-	TensorImageIterator itL_n(logTensorImage_n, logTensorImage_n->GetLargestPossibleRegion());
+    ScalarImageType::Pointer gradMagTensorImage = GradientLogMagTensorImage(logTensorImage_n);
 
-	TensorImageIterator itL_n_1(logTensorImage_n_1, logTensorImage_n_1->GetLargestPossibleRegion());	
+    ScalarImageType::Pointer psiImage = ComputePsiImage(gradMagTensorImage);
 
-	RealType Log_Trace_min, Log_Trace_max;
-	Log_Trace_min = -17; Log_Trace_max =5;
+    TensorImageType::Pointer LaplaceTensorImage = ComputeLaplaceTensor(logTensorImage_n);
+    TensorImageType::Pointer FirstTerm = ComputeFirstTermDelReg(psiImage, LaplaceTensorImage);
+    TensorImageType::Pointer SecTerm = ComputeSecondTermDelReg(psiImage, logTensorImage_n);
+    TensorImageType::Pointer delRegTerm = ComputeDelReg(FirstTerm, SecTerm);
 
+    TensorImageIterator itDelSim(delSim, delSim->GetLargestPossibleRegion());
+    TensorImageIterator itDelReg(delRegTerm, delRegTerm->GetLargestPossibleRegion());
+    TensorImageIterator itL_n(logTensorImage_n, logTensorImage_n->GetLargestPossibleRegion());
+    TensorImageIterator itL_n_1(logTensorImage_n_1, logTensorImage_n_1->GetLargestPossibleRegion());
 
-	for (itHRMask.GoToBegin(), itDelSim.GoToBegin(), itDelReg.GoToBegin(), itL_n.GoToBegin(), itL_n_1.GoToBegin();
-	!itHRMask.IsAtEnd(), !itDelSim.IsAtEnd(), !itDelReg.IsAtEnd(), !itL_n.IsAtEnd(), !itL_n_1.IsAtEnd();
-	++itHRMask, ++itDelSim, ++itDelReg, ++itL_n, ++itL_n_1)
-	{
-	 	if (itHRMask.Get() != 0)
-		{
-		DiffusionTensorType L_temp;
-		L_temp = itL_n.Get() - (itDelSim.Get() - itDelReg.Get()*m_Lambda)*m_Step_size;
+    for (itMask.GoToBegin(), itDelSim.GoToBegin(), itDelReg.GoToBegin(), itL_n.GoToBegin(), itL_n_1.GoToBegin();
+    		!itMask.IsAtEnd(), !itDelReg.IsAtEnd(), !itDelSim.IsAtEnd(), !itL_n.IsAtEnd(), !itL_n_1.IsAtEnd();
+    		++itMask, ++itDelReg, ++itDelSim, ++itL_n, ++itL_n_1)
+    {
+    	if (itMask.Get() != 0)
+    	{
+    		DiffusionTensorType L_temp;
+    		L_temp = itL_n.Get() - (itDelSim.Get() + itDelReg.Get()*m_Lambda)*m_Step_size;
+    		itL_n_1.Set(L_temp);
 
-		RealType Log_Trace = L_temp.GetTrace();
-
-		if ( ( Log_Trace > Log_Trace_min ) && (Log_Trace < Log_Trace_max) )
-		{
-			itL_n_1.Set(L_temp);
-		}
-		else
-		{
-			itL_n_1.Set(itL_n.Get());
-		}
-	//	std::cout << "L_n " << itL_n.Get() << std::endl;
-	//	std::cout << "Del_Sim " << itDelSim.Get() << std::endl;
-//		std::cout << "Del_Reg " << itDelReg.Get() << std::endl;
-//		std::cout << "L_n_1 " << itL_n_1.Get() << std::endl;
-
-		}
-		// Check Exponent
-
-	}
-	
-	
-/*	TensorImageType::Pointer tempTensor = utils.ExpTensorImageFilter(logTensorImage_n_1, m_HRmask);
-	typedef itk::ImageFileWriter<TensorImageType> TensorImageWriterType;
-	TensorImageWriterType::Pointer tensorImageWriter = TensorImageWriterType::New();
-	tensorImageWriter->SetFileName("tempImageTensor.nii.gz");
-	tensorImageWriter->SetInput(tempTensor);
-	tensorImageWriter->Update();
- */
-	ImageListType	PredImageList1 = ComputeAttenuation(logTensorImage_n_1);
-	totEnergyComputation.ReadPredImageList(PredImageList1); //Here
-
-	// WriterImage 
-//	WriterType::Pointer writer2 = WriterType::New();	
-//	writer2->SetFileName("PredImageList_After.nii.gz");
-//	writer2->SetInput(PredImageList1[4]);
-//	writer2->Update();
+//    		std::cout << "L_n " << itL_n.Get() << std::endl;
+//    		std::cout << "DelSim "  << itDelSim.Get() << std::endl;
+//    		std::cout << "DelReg "  << itDelReg.Get() << std::endl;
 
 
-		TensorUtilities utilsTensor1;
+    	}
+    }
 
-	std::cout << "Taking Exponents " << std::endl;
+    logTensorImage_n = logTensorImage_n_1;
+    RealType gaussian1 = totEnergy.GaussianNoise(logTensorImage_n_1);
+    RealType RegEnergy1 = totEnergy.RegularizationEnergy(logTensorImage_n_1);
+    RealType totalEnergy1 =  gaussian1 + m_Lambda*RegEnergy1;
 
-	TensorImageType::Pointer tensorImage_n_1 = utilsTensor1.ExpTensorImageFilter(logTensorImage_n_1, m_HRmask);
-	
-	std::cout << "Took Exponent " << std::endl;
-		
-/*		std::cout << "LogTensorImage " << std::endl;
-		std::cout << "Good Tensor " << logTensorImage_n_1->GetPixel(IndexG) << std::endl;
-		std::cout << " Bad Tensor " << logTensorImage_n_1->GetPixel(IndexB) << std::endl;
-
-		std::cout << "TensorImage " << std::endl;
-		std::cout << "Good Tensor " << tensorImage_n_1->GetPixel(IndexG) << std::endl;
-		std::cout << " Bad Tensor " << tensorImage_n_1->GetPixel(IndexB) << std::endl;
-*/	
-	typedef itk::ImageFileWriter<TensorImageType> TensorImageWriterType;
-	TensorImageWriterType::Pointer tensorImageWriter = TensorImageWriterType::New();
-	tensorImageWriter->SetFileName("AfterTakingExp.nii.gz");
-	tensorImageWriter->SetInput(tensorImage_n_1);
-	tensorImageWriter->Update();
-
-	TensorImageType::Pointer removedNansInfs_TensorImage = utilsTensor1.ReplaceNaNsInfsExpTensor(tensorImage_n_1, m_HRmask);	
-	TensorImageWriterType::Pointer tensorImageWriter1 = TensorImageWriterType::New();
-	tensorImageWriter1->SetFileName("AfterTakingExp_removed.nii.gz");
-	tensorImageWriter1->SetInput(removedNansInfs_TensorImage);
-	tensorImageWriter1->Update();
+    std::cout << "Energy " << totalEnergy1 << std::endl;
+    std::cout << "Energy back " << Energy_vec.back() << std::endl;
+    std::cout << "Data fidelity Energy " << gaussian1 << std::endl;
+    std::cout << "Regularization Energy " << RegEnergy1 << std::endl;
 
 
-	
-	TensorImageType::Pointer recomputeLog_n_1 = utilsTensor1.LogTensorImageFilter(removedNansInfs_TensorImage, m_HRmask);
+    if (totalEnergy1 < Energy_vec.back())
+    {
+        logTensorImage_n = logTensorImage_n_1;
 
-	std::cout << "Recomputed Log " << std::endl;
-
-	
-
- 	TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor1.ReplaceNaNsInfs(recomputeLog_n_1, m_HRmask);
-	std::cout << "Removed Nans " << std::endl; 
-	
-
-	RealType gaussEnergy_n_1, regEnergy_n_1;	
-	gaussEnergy_n_1= 0; regEnergy_n_1 =0;
-	gaussEnergy_n_1 = totEnergyComputation.GaussianNoise_SR(removed_nans_logTensorImage);
-	regEnergy_n_1 = totEnergyComputation.RegularizationEnergy(removed_nans_logTensorImage);
-
-	RealType energy_n_1 = gaussEnergy_n_1 + m_Lambda*regEnergy_n_1 ;
-
-	std::cout << fixed;
-	std::cout << "Energy " << Energy_vec.back() << std::endl;
-	std::cout << "New Energy " << energy_n_1 << std::endl;
+    	Energy_vec.push_back(totalEnergy);
+    }
+    else
+    {
+    	break;
+    }
 
 
-	if (energy_n_1 < Energy_vec.back())
-	{
-		
-	//	TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor1.ReplaceNaNsInfs(logTensorImage_n_1, m_HRmask);
-		logTensorImage_n = removed_nans_logTensorImage;
-		Energy_vec.push_back(energy_n_1);
-	
-//		std::cout << energy_n_1 << " " << gaussEnergy_n_1 << " " << regEnergy_n_1 << std::endl;
-	
-	}
-	else
-	{ break;  }
-
-	
-
-	}
-
-	TensorImageType::Pointer tensorImage = utils.ExpTensorImageFilter(logTensorImage_n, m_HRmask);
-
-
-
-	return tensorImage;;
-
+    }
+    return logTensorImage_n;
 }
 
-
+*/
