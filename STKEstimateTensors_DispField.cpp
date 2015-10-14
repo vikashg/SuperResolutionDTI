@@ -13,7 +13,7 @@
 #include "itkImageFileWriter.h"
 #include "GetPot/GetPot"
 #include "itkDiffusionTensor3D.h"
-#include "JointTensorEstimation.h"
+#include "JointTensorEstimation_LNLS.h"
 #include "CopyImage.h"
 #include "../inc/UnweightedLeastSquaresTensorFit.h"
 #include "ComputeSigma_LR.h"
@@ -58,6 +58,7 @@ int main (int argc, char *argv[])
      const string dispField_n = cl.follow("NoFile",1,"-d");
      const string T1Image_n   = cl.follow("NoFile",1,"-T1");
      const string mask_HR_n = cl.follow("NoFile", 1, "-mHR");
+     const string mask_uner_HR_n = cl.follow("NoFile",1,"-unerHR");
     // Usual Typedefs
     typedef float RealType;
     const int ImageDim  =3;
@@ -130,7 +131,13 @@ int main (int argc, char *argv[])
 	
 	ScalarImageType::Pointer maskImage_LR = maskImageReader->GetOutput();
 
-		
+	
+	ScalarImageReaderType::Pointer unEroded_maskReader = ScalarImageReaderType::New();
+	unEroded_maskReader->SetFileName(mask_uner_HR_n.c_str());
+	unEroded_maskReader->Update();
+
+	ScalarImageType::Pointer maskUnEroded = unEroded_maskReader->GetOutput();
+	
 	// Resample diffusion Images	
 /*	typedef itk::WarpImageFilter<ScalarImageType, ScalarImageType, DeformationFieldType> WarpImageFilterType;
 	typedef itk::ImageFileWriter<ScalarImageType> ScalarImageWriterType;
@@ -271,12 +278,11 @@ int main (int argc, char *argv[])
 		gradientImageReader->Update();
 		gradientImageList.push_back(gradientImageReader->GetOutput()) ;
 
-		std::cout << "Reading...." << filename << std::endl;		
-	
+		std::cout << "Reading...." << filename << std::endl;			
 	}
 
 	// Compute the matrix
-	MapFilterLR2HRDisp filter;
+/*	MapFilterLR2HRDisp filter;
 	filter.ReadFixedImage(T1_image); //	
 	filter.ReadMovingImage(B0_image_LR); 
 	filter.ReadDeformationField(defField);
@@ -315,9 +321,16 @@ int main (int argc, char *argv[])
 	scalarWriter->SetInput(tempImage2);
 	scalarWriter->Update();
 
-/*	UnweightedLeastSquaresTensorEstimation UnWeightedTensorEstimator;
+	ScalarWriterType::Pointer scalarWriter2 = ScalarWriterType::New();
+	scalarWriter2->SetFileName("TempImage1.nii.gz");
+	scalarWriter2->SetInput(tempImage1);
+	scalarWriter2->Update();
+*/
+/*
+
+	UnweightedLeastSquaresTensorEstimation UnWeightedTensorEstimator;
 	UnWeightedTensorEstimator.ReadDWIList(DWIList_HR);
-	UnWeightedTensorEstimator.ReadMask(maskImage_HR);
+	UnWeightedTensorEstimator.ReadMask(maskUnEroded);
 	UnWeightedTensorEstimator.ReadBVal(1.0);
         UnWeightedTensorEstimator.ReadGradientList(gradientImageList);
 	UnWeightedTensorEstimator.ReadB0Image(B0Image_HR);	
@@ -325,11 +338,6 @@ int main (int argc, char *argv[])
 	std::cout << "Computing Stupid Tensor " << std::endl;
 	TensorImageType::Pointer tensorImage_init = UnWeightedTensorEstimator.Compute();
 
-	typedef itk::ImageFileWriter<TensorImageType> TensorWriterType;	
-	TensorWriterType::Pointer tensorWriter = TensorWriterType::New();
-	tensorWriter->SetFileName("TensorImage.nii.gz");
-	tensorWriter->SetInput(tensorImage_init);
-	tensorWriter->Update();
 */
 	
 /*	typedef itk::ImageFileReader<TensorImageType> TensorReaderType;
@@ -337,23 +345,29 @@ int main (int argc, char *argv[])
 	tensorReader->SetFileName("TensorImage.nii.gz");
 	tensorReader->Update();
 	TensorImageType::Pointer tensorImage_init = tensorReader->GetOutput();
-	
+*/	
 	TensorUtilities utilsTensors;
 
 	//Correct the TensorImages
 		// Replace NaNs
-		TensorImageType::Pointer tensorImage_removeNans = utilsTensors.ReplaceNaNsReverseEigenValue(tensorImage_init, maskImage_HR);
+//		TensorImageType::Pointer tensorImage_removeNans = utilsTensors.ReplaceNaNsReverseEigenValue(tensorImage_init, maskImage_HR);
 		
 		//Compute the Log 
-		TensorImageType::Pointer log_tensorImage = utilsTensors.LogTensorImageFilter(tensorImage_removeNans, maskImage_HR);
+//		TensorImageType::Pointer log_tensorImage = utilsTensors.LogTensorImageFilter(tensorImage_removeNans, maskImage_HR);
 		
 		//Replace Nans&Infs
-		TensorImageType::Pointer removed_nans_logTensorImage = utilsTensors.ReplaceNaNsInfs(log_tensorImage, maskImage_HR);
+//		TensorImageType::Pointer removed_nans_logTensorImage = utilsTensors.ReplaceNaNsInfs(log_tensorImage, maskImage_HR);
 		
 		// Exp-ed Tensors
-		TensorImageType::Pointer padded_tensorImage_init = utilsTensors.ExpTensorImageFilter(removed_nans_logTensorImage, maskImage_HR);
+//		TensorImageType::Pointer padded_tensorImage_init = utilsTensors.ExpTensorImageFilter(removed_nans_logTensorImage, maskImage_HR);
 	// 
 
+/*
+	typedef itk::ImageFileWriter<TensorImageType> TensorWriterType;	
+	TensorWriterType::Pointer tensorWriter = TensorWriterType::New();
+	tensorWriter->SetFileName("TensorImage.nii.gz");
+	tensorWriter->SetInput(padded_tensorImage_init);
+	tensorWriter->Update();
 */
 		TensorImageType::IndexType IndexG, IndexB;
 		IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
@@ -362,21 +376,21 @@ int main (int argc, char *argv[])
 
 		typedef itk::ImageFileReader<TensorImageType> TensorReaderType;
 		TensorReaderType::Pointer tensorReader = TensorReaderType::New();
-		tensorReader->SetFileName("TensorCorr.nii.gz");
+		tensorReader->SetFileName("tensorImage.nii.gz");
 		tensorReader->Update();
 		
 		TensorImageType::Pointer padded_tensorImage_init = tensorReader->GetOutput();
 	//Compute Sigma 
 		
-		std::cout << "Good Tensor " << padded_tensorImage_init->GetPixel(IndexG) << std::endl;
-		std::cout << " Bad Tensor " << padded_tensorImage_init->GetPixel(IndexB) << std::endl;
+//		std::cout << "Good Tensor " << padded_tensorImage_init->GetPixel(IndexG) << std::endl;
+//		std::cout << " Bad Tensor " << padded_tensorImage_init->GetPixel(IndexB) << std::endl;
 		
 
 		vnl_vector<RealType> Sigma; 
 		
 		Sigma.set_size(DWIList.size());
 		Sigma.fill(1.0);
-		ComputeSigma_LR computeSigma;
+/*		ComputeSigma_LR computeSigma;
 		computeSigma.ReadB0Image_HR(B0Image_HR);
 		computeSigma.ReadB0Image_LR(B0_image_LR);
 		computeSigma.ReadBVal(1.0);
@@ -387,8 +401,8 @@ int main (int argc, char *argv[])
 		computeSigma.ReadMapMatrix(MapHR2LR);
 		computeSigma.ReadLRImage(maskImage_LR);
 
-		Sigma  = computeSigma.ComputeAttenuation();
-
+		Sigma  = computeSigma.ComputeAttenuation_woSR();
+*/
 		std::cout << Sigma << std::endl;
 
 		// Compute Joint Estimation
@@ -402,8 +416,8 @@ int main (int argc, char *argv[])
 
 		std::cout << "Sigma done " << std::endl;
 
-		TensorUtilities utilsTensor;
-		TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor.LogTensorImageFilter(padded_tensorImage_init, maskImage_HR);
+//		TensorUtilities utilsTensor;
+//		TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor.LogTensorImageFilter(padded_tensorImage_init, maskImage_HR);
 
 
 		JointTensorEstimation jTestimation;
@@ -419,11 +433,11 @@ int main (int argc, char *argv[])
 		jTestimation.ReadB0ImageHR(B0Image_HR);
 		jTestimation.ReadB0ImageLR(B0_image_LR);
 
-		jTestimation.ReadMapMatrixLR2HR(MapLR2HR);
-		jTestimation.ReadMapMatrixHR2LR(MapHR2LR);
+//		jTestimation.ReadMapMatrixLR2HR(MapLR2HR);
+//		jTestimation.ReadMapMatrixHR2LR(MapHR2LR);
 		jTestimation.ReadBVal(1.0);
 
-		jTestimation.ReadStepSize(0.001);
+		jTestimation.ReadStepSize(1000);
 	
 		jTestimation.ReadSigma(Sigma);
 		jTestimation.ReadKappa(0.25);
@@ -432,17 +446,17 @@ int main (int argc, char *argv[])
 		//Testing Components
 		ImageListType testDiffImageList, AttenuationList;
 
-
-		TensorImageType::Pointer tensorImage = jTestimation.UpdateTerms();
+		std::cout << "Read everything " << std::endl;
+		TensorImageType::Pointer tensorImage = jTestimation.UpdateTerms1();
 	
 		//AttenuationList = jTestimation.ComputeAttenuation(removed_nans_logTensorImage);
 
 
-		typedef itk::ImageFileWriter<TensorImageType> TensorImageWriterType;
-		TensorImageWriterType::Pointer tensorWriter = TensorImageWriterType::New();
-		tensorWriter->SetFileName("EstimatedTensor_Sim.nii.gz");
-		tensorWriter->SetInput(tensorImage);
-		tensorWriter->Update();
+//		typedef itk::ImageFileWriter<TensorImageType> TensorImageWriterType;
+//		TensorImageWriterType::Pointer tensorWriter1 = TensorImageWriterType::New();
+//		tensorWriter1->SetFileName("EstimatedTensor_Sim.nii.gz");
+//		tensorWriter1->SetInput(tensorImage);
+//		tensorWriter1->Update();
 
 	
         return 0;

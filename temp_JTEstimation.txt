@@ -1,0 +1,214 @@
+/*
+
+JointTensorEstimation::TensorImageType::Pointer JointTensorEstimation::UpdateTerms()
+{
+
+	TensorImageType::IndexType IndexG, IndexB;
+		IndexG[0]=123; IndexG[1]=138; IndexG[2]=171;
+
+		IndexB[0]=123; IndexB[1]=159; IndexB[2]=201;
+
+
+	//First Compute Total Energy
+	TensorUtilities utils;
+ 	std::vector<RealType> Energy_vec;
+
+	CopyImage cpImage;
+
+	TensorImageType::Pointer log_tensorImage_init = utils.LogTensorImageFilter(m_dt_init, m_HRmask);
+
+	std::cout << "Computed PredImageList " << std::endl;
+
+	ImageListType PredImageList = ComputeAttenuation_Frac(log_tensorImage_init);
+
+
+
+	TensorImageType::Pointer logTensorImage_n_1 = TensorImageType::New();
+	cpImage.CopyTensorImage(m_dt_init, logTensorImage_n_1);
+
+	TotalEnergy totEnergyComputation;
+*/
+/*	totEnergyComputation.ReadObsImageList(m_DWIListLR);
+	totEnergyComputation.ReadPredImageList(PredImageList);
+	totEnergyComputation.ReadB0Image(m_B0Image_LR);
+	totEnergyComputation.ReadSigma(m_Sigma);
+	totEnergyComputation.ReadKappa(m_kappa);
+	totEnergyComputation.ReadLRMaskImage(m_LRmask);
+	totEnergyComputation.ReadHRMaskImage(m_HRmask);
+	totEnergyComputation.SetFracFlag(1);
+	totEnergyComputation.ReadMapMatrixHR2LR(m_MapHR2LR);
+*/
+
+/*
+	totEnergyComputation.ReadObsImageList(m_DWIListHR);
+	totEnergyComputation.ReadPredImageList(PredImageList);
+	totEnergyComputation.ReadSigma(m_Sigma);
+	totEnergyComputation.ReadKappa(m_kappa);
+	totEnergyComputation.ReadHRMaskImage(m_HRmask);
+	totEnergyComputation.ReadB0Image(m_B0Image_HR);
+
+	//Compute Regularization Energy
+	RealType regEnergy_0 =0;
+//	regEnergy_0 = totEnergyComputation.RegularizationEnergy(log_tensorImage_init);
+//	std::cout << "RegEnergy Computed " << std::endl;
+
+	RealType GaussEnergy_0 =0;
+	 GaussEnergy_0 = totEnergyComputation.GaussianNoise_woSR(log_tensorImage_init);
+
+	std::cout << "GaussEnergy Computed " << std::endl;
+
+	RealType totalEnergy_0 =0;
+
+	 totalEnergy_0 = GaussEnergy_0 + m_Lambda*regEnergy_0;
+
+	std::cout << fixed;
+	std::cout << "Gauss Energy 0 " << GaussEnergy_0 << std::endl;
+	std::cout << "Reg Energy 0 " << regEnergy_0 << std::endl;
+
+
+	Energy_vec.push_back(totalEnergy_0);
+
+	//std::cout << "Computed TotalEnergy " << std::endl;
+
+	TensorImageType::Pointer logTensorImage_n = log_tensorImage_init;
+
+
+	ScalarImageIterator itHRMask(m_HRmask, m_HRmask->GetLargestPossibleRegion());
+	for (int i =0; i < m_Iterations; i++)
+	{
+	 TensorImageType::Pointer delSim = TensorImageType::New();
+	 cpImage.CopyTensorImage(logTensorImage_n, delSim);
+	 delSim = ComputeDelSim_Frac_DispField(logTensorImage_n);
+
+		std::cout << "Computed Del Sim Frac " << std::endl;
+
+
+	TensorImageType::Pointer delRegTerm = TensorImageType::New();
+	cpImage.CopyTensorImage(delSim, delRegTerm);
+	ScalarImageType::Pointer gradMagTensorImage = GradientLogMagTensorImage(logTensorImage_n);
+
+	ScalarImageType::Pointer psiImage = ComputePsiImage(gradMagTensorImage);
+	TensorImageType::Pointer LaplaceImage = ComputeLaplaceTensor(logTensorImage_n);
+	TensorImageType::Pointer FirstTerm = ComputeFirstTermDelReg(psiImage, logTensorImage_n);
+	TensorImageType::Pointer SecTerm = ComputeSecondTermDelReg(psiImage, logTensorImage_n);
+	 delRegTerm = ComputeDelReg(FirstTerm, SecTerm);
+
+*/
+
+/*	TensorImageIterator itDelSim(delSim, delSim->GetLargestPossibleRegion());
+	TensorImageIterator itDelReg(delRegTerm, delRegTerm->GetLargestPossibleRegion());
+	TensorImageIterator itL_n(logTensorImage_n, logTensorImage_n->GetLargestPossibleRegion());
+
+	TensorImageIterator itL_n_1(logTensorImage_n_1, logTensorImage_n_1->GetLargestPossibleRegion());
+
+	RealType Log_Trace_min, Log_Trace_max;
+	Log_Trace_min = -17; Log_Trace_max =5;
+
+
+	for (itHRMask.GoToBegin(), itDelSim.GoToBegin(), itDelReg.GoToBegin(), itL_n.GoToBegin(), itL_n_1.GoToBegin();
+	!itHRMask.IsAtEnd(), !itDelSim.IsAtEnd(), !itDelReg.IsAtEnd(), !itL_n.IsAtEnd(), !itL_n_1.IsAtEnd();
+	++itHRMask, ++itDelSim, ++itDelReg, ++itL_n, ++itL_n_1)
+	{
+	 	if (itHRMask.Get() != 0)
+		{
+		DiffusionTensorType L_temp;
+		L_temp = itL_n.Get() - (itDelSim.Get() + itDelReg.Get()*m_Lambda)*m_Step_size;
+
+		RealType Log_Trace = L_temp.GetTrace();
+
+		itL_n_1.Set(L_temp);
+*/
+	/*	if ( ( Log_Trace > Log_Trace_min ) && (Log_Trace < Log_Trace_max) )
+		{
+			itL_n_1.Set(L_temp);
+		}
+		else
+		{
+			itL_n_1.Set(itL_n.Get());
+		}
+	*/
+/*		std::cout << "L_n " << itL_n.Get() << std::endl;
+		std::cout << "Del_Sim " << itDelSim.Get() << std::endl;
+		std::cout << "Del_Reg " << itDelReg.Get() << std::endl;
+		std::cout << "L_n_1 " << itL_n_1.Get() << std::endl;
+
+		std::cout << "            " << std::endl;
+		}
+		// Check Exponent
+
+	}
+
+
+	ImageListType	PredImageList1 = ComputeAttenuation(logTensorImage_n_1);
+	totEnergyComputation.ReadPredImageList(PredImageList1); //Here
+
+
+		TensorUtilities utilsTensor1;
+
+	std::cout << "Taking Exponents " << std::endl;
+
+	TensorImageType::Pointer tensorImage_n_1 = utilsTensor1.ExpTensorImageFilter(logTensorImage_n_1, m_HRmask);
+
+	std::cout << "Took Exponent " << std::endl;
+
+	typedef itk::ImageFileWriter<TensorImageType> TensorImageWriterType;
+	TensorImageWriterType::Pointer tensorImageWriter = TensorImageWriterType::New();
+	tensorImageWriter->SetFileName("AfterTakingExp.nii.gz");
+	tensorImageWriter->SetInput(tensorImage_n_1);
+	tensorImageWriter->Update();
+
+	TensorImageType::Pointer removedNansInfs_TensorImage = utilsTensor1.ReplaceNaNsInfsExpTensor(tensorImage_n_1, m_HRmask);
+	TensorImageWriterType::Pointer tensorImageWriter1 = TensorImageWriterType::New();
+	tensorImageWriter1->SetFileName("AfterTakingExp_removed.nii.gz");
+	tensorImageWriter1->SetInput(removedNansInfs_TensorImage);
+	tensorImageWriter1->Update();
+
+
+
+	TensorImageType::Pointer recomputeLog_n_1 = utilsTensor1.LogTensorImageFilter(removedNansInfs_TensorImage, m_HRmask);
+
+	std::cout << "Recomputed Log " << std::endl;
+
+
+
+ 		TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor1.ReplaceNaNsInfs(recomputeLog_n_1, m_HRmask);
+	std::cout << "Removed Nans " << std::endl;
+
+
+	RealType gaussEnergy_n_1, regEnergy_n_1;
+	gaussEnergy_n_1= 0; regEnergy_n_1 =0;
+	gaussEnergy_n_1 = totEnergyComputation.GaussianNoise_woSR(removed_nans_logTensorImage);
+	//regEnergy_n_1 = totEnergyComputation.RegularizationEnergy(removed_nans_logTensorImage);
+
+	RealType energy_n_1 = gaussEnergy_n_1 + m_Lambda*regEnergy_n_1 ;
+
+	std::cout << fixed;
+	std::cout << "Energy " << Energy_vec.back() << std::endl;
+	std::cout << "New Energy " << energy_n_1 << std::endl;
+
+
+	if (energy_n_1 < Energy_vec.back())
+	{
+
+	//	TensorImageType::Pointer removed_nans_logTensorImage = utilsTensor1.ReplaceNaNsInfs(logTensorImage_n_1, m_HRmask);
+		logTensorImage_n = removed_nans_logTensorImage;
+		Energy_vec.push_back(energy_n_1);
+
+//		std::cout << energy_n_1 << " " << gaussEnergy_n_1 << " " << regEnergy_n_1 << std::endl;
+
+	}
+	else
+	{ break;  }
+
+
+
+	}
+
+	TensorImageType::Pointer tensorImage = utils.ExpTensorImageFilter(logTensorImage_n, m_HRmask);
+
+
+
+	return tensorImage;;
+
+}
+*/

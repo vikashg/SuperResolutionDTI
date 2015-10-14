@@ -45,6 +45,11 @@ TARGET_LINK_LIBRARIES(stkEstimateTensors ${ITK_LIBRARIES} ${VTK_LIBRARIES} Super
 ADD_EXECUTABLE(stkEstimateTensor_DispField STKEstimateTensors_DispField.cpp)
 TARGET_LINK_LIBRARIES(stkEstimateTensor_DispField ${ITK_LIBRARIES} SuperResolution) 
 
+ADD_EXECUTABLE(StupidTensorEstimation StupidTensorEstimation.cpp)
+TARGET_LINK_LIBRARIES(StupidTensorEstimation ${ITK_LIBRARIES} SuperResolution) 
+
 ADD_EXECUTABLE(stkEstimateTensors_v2 STKTensorEstimation_v2.cpp)
 TARGET_LINK_LIBRARIES(stkEstimateTensors_v2 ${ITK_LIBRARIES} ${VTK_LIBRARIES} SuperResolution)
 
+ADD_EXECUTABLE(STKEstimateTensors_CWLS STKEstimateTensors_CWLS.cpp)
+TARGET_LINK_LIBRARIES(STKEstimateTensors_CWLS ${ITK_LIBRARIES} ${VTK_LIBRARIES} SuperResolution)
