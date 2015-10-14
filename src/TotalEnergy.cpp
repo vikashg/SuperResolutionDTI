@@ -65,6 +65,47 @@ void TotalEnergy::SetFracFlag(bool flag)
 }
 
 
+TotalEnergy::RealType TotalEnergy::GaussianNoise_woSR(TensorImageType::Pointer logTensorImage)
+{
+	int numOfImage = m_DWIList.size();
+	
+	ScalarImageIterator itHRmask(m_HRMaskImage, m_HRMaskImage->GetLargestPossibleRegion());
+	ScalarImageIterator itB0(m_B0Image, m_B0Image->GetLargestPossibleRegion());
+
+	CopyImage cpImage;
+	ScalarImageType::Pointer Gauss = ScalarImageType::New();
+
+	
+	RealType TotalEnergy =0;
+	
+for (int i =0; i < numOfImage; i++)
+	{
+	   ScalarImageIterator itPred(m_predList[i], m_predList[i]->GetLargestPossibleRegion());
+	   ScalarImageIterator itObs(m_DWIList[i], m_DWIList[i]->GetLargestPossibleRegion());
+	 
+	 for (itPred.GoToBegin(), itHRmask.GoToBegin(), itObs.GoToBegin(), itB0.GoToBegin(); 
+		!itHRmask.IsAtEnd(), !itPred.IsAtEnd(), !itObs.IsAtEnd(), !itB0.IsAtEnd();
+		++itHRmask, ++itPred, ++itObs, ++itB0)
+	{
+		if (itHRmask.Get() !=0)
+		{
+		 RealType temp;
+		temp = itObs.Get()/itB0.Get();
+		
+		RealType energy;
+		energy = (temp - itPred.Get())*(temp - itPred.Get())/(m_Sigma[i]*m_Sigma[i]);
+		TotalEnergy =  TotalEnergy + energy;
+		}
+	}  
+
+
+	}
+	
+
+	return TotalEnergy;	
+}
+
+
 
 TotalEnergy::RealType TotalEnergy::GaussianNoise_SR(TensorImageType::Pointer logTensorImage)
 {
@@ -158,7 +199,7 @@ TotalEnergy::RealType TotalEnergy::GaussianNoise_SR(TensorImageType::Pointer log
 	
 			RealType deno =1;
 			RealType energy_vox =0;
-			if(itB0.Get() > 100)
+			if(itB0.Get() > 200)
 			{
 				deno = itB0.Get()*m_Sigma[i];
 				energy_vox = temp_diff/deno;				

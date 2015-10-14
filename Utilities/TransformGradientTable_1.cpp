@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     jacobianFilter->SetUseCenteredDifference(true);
     jacobianFilter->Update();
 
-    std::cout << defField->GetOrigin() << std::endl;
+//    std::cout << defField->GetOrigin() << std::endl;
 
     VectorImageType::IndexType testIndex;
     testIndex[0]=60; testIndex[1]=111; testIndex[2]=128;

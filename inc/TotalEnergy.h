@@ -72,6 +72,7 @@ public:
 	void SetFracFlag(bool flag);	
 
 	RealType GaussianNoise_Frac(TensorImageType::Pointer logTensorImage);
+	RealType GaussianNoise_woSR(TensorImageType::Pointer logTensorImage);
 	
 	RealType GaussianNoise_SR(TensorImageType::Pointer logTensorImage);
 private:

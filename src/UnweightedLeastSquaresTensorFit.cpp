@@ -97,6 +97,8 @@ Compute()
 			D(1,2) = D_vec.get(5,0);
 
 
+//			std::cout << D << std::endl;
+
 			vnl_matrix<RealType> D_mat;
 			D_mat.set_size(3,3);
 

@@ -15,6 +15,26 @@ TensorUtilities::ScalarImageType::Pointer TensorUtilities::ComputeFA(TensorImage
 	
 }
 */
+
+vnl_matrix<double> TensorUtilities::CholeskyDecomposition(DiffusionTensorType D)
+{
+	MatrixType D_mat = ConvertDT2Mat(D);
+
+	vnl_matrix<double> D_mat_double;
+	D_mat_double.set_size(3,3);
+	vnl_copy(D_mat, D_mat_double);
+		
+
+	vnl_cholesky chol(D_mat_double);
+	vnl_matrix<double> L,U;
+	L = chol.lower_triangle();	
+	U = chol.upper_triangle();	
+	
+	return U;
+}
+
+
+
 TensorUtilities::TensorImageType::Pointer TensorUtilities::LogTensorImageFilter(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage)
 {
 	TensorImageType::Pointer LogTensorImage = TensorImageType::New();
@@ -85,7 +105,7 @@ TensorUtilities::TensorImageType::Pointer TensorUtilities::ReplaceNaNsInfsExpTen
 			if( (isnan(Trace) == 1) || (isinf(Trace) ==1))
 			{
 			 itOut.Set(ZeroD);
-			std::cout << itOut.GetIndex() << " " << itOut.Get() << std::endl;
+		//	std::cout << itOut.GetIndex() << " " << itOut.Get() << std::endl;
 			}
 			else
 			{

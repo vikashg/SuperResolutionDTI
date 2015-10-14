@@ -4,6 +4,9 @@ TARGET_LINK_LIBRARIES(testMapping ${ITK_LIBRARIES} SuperResolution)
 ADD_EXECUTABLE(IsolateProbTensors IsolateProbTensors.cpp)
 TARGET_LINK_LIBRARIES(IsolateProbTensors ${ITK_LIBRARIES} SuperResolution) 
 
+ADD_EXECUTABLE(MaskImage_thres MaskImage_thres.cpp)
+TARGET_LINK_LIBRARIES(MaskImage_thres ${ITK_LIBRARIES} SuperResolution) 
+
 ADD_EXECUTABLE(testSobol TestSobol.cpp)
 TARGET_LINK_LIBRARIES(testSobol ${ITK_LIBRARIES} SuperResolution) 
 
@@ -48,6 +51,9 @@ TARGET_LINK_LIBRARIES(ConvertTTK2FSL ${ITK_LIBRARIES} SuperResolution)
 
 ADD_EXECUTABLE(PropagateGradients1 PropagateGradients1.cpp)
 TARGET_LINK_LIBRARIES(PropagateGradients1 ${ITK_LIBRARIES} SuperResolution) 
+
+ADD_EXECUTABLE(TestWeightedNLS TestWeightedNLS.cpp)
+TARGET_LINK_LIBRARIES(TestWeightedNLS ${ITK_LIBRARIES} SuperResolution) 
 
 ADD_EXECUTABLE(PropagateTransformGradients PropagateTransformGradients.cpp)
 TARGET_LINK_LIBRARIES(PropagateTransformGradients ${ITK_LIBRARIES} SuperResolution) 

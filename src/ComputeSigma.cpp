@@ -37,6 +37,86 @@ void ComputeSigma::ReadB0Image(ScalarImageType::Pointer image)
 	m_B0Image = image;
 }
 
+vnl_vector<ComputeSigma::RealType> ComputeSigma::ComputeAttenuation_woSR()
+{
+	int numOfImages= m_DWIList.size();
+	int numOfGrads = m_GradList.size();
+
+	ScalarImageType::Pointer m_B0 = m_DWIList[0];
+
+	TensorUtilities tensUtilties;
+	CopyImage cpImage;
+
+	vnl_vector<RealType> Sigma;
+	Sigma.set_size(numOfGrads);
+
+	for (int i=0; i < numOfGrads ; i++)
+	{
+
+		ScalarImageType::Pointer Atten_im = ScalarImageType::New();
+		cpImage.CopyScalarImage(m_maskImage, Atten_im);
+
+
+		ScalarImageIterator itAtten(Atten_im, Atten_im->GetLargestPossibleRegion());
+		ScalarImageIterator itDWI(m_DWIList[i], m_DWIList[i]->GetLargestPossibleRegion());
+		TensorImageIterator itTens(m_dt, m_dt->GetLargestPossibleRegion());
+		VectorImageIterator itGrad(m_GradList[i], m_GradList[i]->GetLargestPossibleRegion());
+		ScalarImageIterator itMask(m_maskImage, m_maskImage->GetLargestPossibleRegion());
+		ScalarImageIterator itB0(m_B0Image, m_B0Image->GetLargestPossibleRegion());
+
+		SubtractImageFilterType::Pointer subImageFilter = SubtractImageFilterType::New();
+		StatisticsImageFilterType::Pointer statisticImageFilter = StatisticsImageFilterType::New();
+
+		ScalarImageType::Pointer diffImage_i = ScalarImageType::New();
+		cpImage.CopyScalarImage(m_B0Image, diffImage_i);
+
+
+		for (itDWI.GoToBegin(), itTens.GoToBegin(), itGrad.GoToBegin(), itMask.GoToBegin(), itAtten.GoToBegin(), itB0.GoToBegin();
+				!itDWI.IsAtEnd(), !itTens.IsAtEnd(), !itGrad.IsAtEnd(), !itMask.IsAtEnd(), !itAtten.IsAtEnd(), !itB0.IsAtEnd();
+				++itDWI, ++itTens, ++itGrad, ++itMask, ++itAtten, ++itB0)
+		{
+			if (itMask.Get() != 0)
+			{
+
+				RealType Atten_i_val;
+				vnl_vector<RealType> g_i = itGrad.Get().GetVnlVector();
+				vnl_matrix<RealType> g_mat_i;
+				g_mat_i.set_size(3,1);
+				g_mat_i.set_column(0,g_i);
+
+				DiffusionTensorType D = itTens.Get();
+				MatrixType D_mat;
+				D_mat.set_size(3,3);
+				D_mat = tensUtilties.ConvertDT2Mat(D);
+
+				MatrixType temp; temp.set_size(1,1);
+				temp = g_mat_i.transpose()*D_mat*g_mat_i;
+
+				Atten_i_val = exp(-m_BVal*temp(0,0));
+				itAtten.Set(Atten_i_val);
+
+				RealType diff = itDWI.Get()/itB0.Get() - Atten_i_val;
+				
+		
+				diffImage_i->SetPixel(itMask.GetIndex(), diff);		
+
+		}
+		}
+
+
+		statisticImageFilter->SetInput(diffImage_i);
+		statisticImageFilter->Update();
+
+
+		RealType sigma = statisticImageFilter->GetSigma();
+		Sigma.put(i, sigma);
+
+	}
+
+	return Sigma;
+
+}
+
 vnl_vector<ComputeSigma::RealType> ComputeSigma::ComputeAttenuation()
 {
 	int numOfImages= m_DWIList.size();

@@ -17,6 +17,8 @@
 #include "itkNeighborhoodIterator.h"
 #include "vnl/algo/vnl_symmetric_eigensystem.h"
 #include "CopyImage.h"
+#include "vnl/algo/vnl_cholesky.h"
+#include "vnl/vnl_copy.h"
 
 class TensorUtilities
 {
@@ -39,6 +41,8 @@ public:
 	MatrixType ConvertDT2Mat(DiffusionTensorType D);
 	RealType ComputeTensorNorm(DiffusionTensorType D);
 
+
+	vnl_matrix<double> CholeskyDecomposition(DiffusionTensorType D);
 	TensorImageType::Pointer ReplaceNaNsInfs(TensorImageType::Pointer tensorImage, ScalarImageType::Pointer maskImage);
 
 	DiffusionTensorType ConvertMat2DT(MatrixType D_mat);

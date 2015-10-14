@@ -3,11 +3,12 @@ ADD_LIBRARY(SuperResolution sobol.cpp
 			    ComposeImage.cpp
 			    UnweightedLeastSquaresTensorFit.cpp
 			    TensorUtilites.cpp
-			    JointTensorEstimation.cpp
+				JointTensorEstimation_LNLS.cpp
+				WeightedLeastSquares_CWLS.cpp
 			    CopyImage.cpp
 				ComputeSigma_LR.cpp
-				ComputeSigma.cpp
 				TotalEnergy.cpp
 				JacobianComputation.cpp
 				MapFilterLR2HRDispField.cpp
+			   WeightedLeastSquares_new.cpp
 				TransformGradients.cpp)
