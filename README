@@ -1,3 +1,4 @@
 This code is for computing Super-resolution on Diffusion Tensor Images. The algorithm is implemented based on the following paper. 
 
 [Vikash Gupta, Nicholas Ayache, Xavier Pennec, Improving DTI resolution from a single clinical acquisition: a statistical approach using spatial prior. Medical Image Computing and Computer Assisted Intervention 2013 (MICCAI), volume 8151 of Lecture Notes in Computer Science - LNCS, Nagoya, Japon, pages 477-484, 2013. Springer](https://scholar.google.com/citationsview_op=view_citation&hl=en&user=EC4hMYYAAAAJ&citation_for_view=EC4hMYYAAAAJ:u-x6o8ySG0sC)
+[I'm an inline-style link](https://www.google.com)
